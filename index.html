@@ -13,16 +13,13 @@
   <script type="text/babel" data-presets="react">
     const { useState, useEffect, useRef, useCallback } = React;
 
-
 const GCAL = { CLIENT_ID:"YOUR_CLIENT_ID.apps.googleusercontent.com", API_KEY:"YOUR_API_KEY", CALENDAR_ID:"primary", SCOPES:"https://www.googleapis.com/auth/calendar" };
 
-// ─── STORAGE ───────────────────────────────────────────────────────────────
 const storage = {
   async get(k){try{const v=localStorage.getItem(k);return v?JSON.parse(v):null;}catch{return null;}},
   async set(k,v){try{localStorage.setItem(k,JSON.stringify(v));}catch{}}
 };
 
-// ─── DATE HELPERS ──────────────────────────────────────────────────────────
 const nowISO = () => new Date().toISOString();
 const hoursAgo = (h) => new Date(Date.now()-h*3600000).toISOString();
 const todayStr = () => new Date().toISOString().split("T")[0];
@@ -34,11 +31,8 @@ const fmtDate = (d) => { if(!d)return{day:"—",month:"",full:""};const[y,mo,day
 const hoursSince = (iso) => iso?(Date.now()-new Date(iso).getTime())/3600000:0;
 const daysSince  = (iso) => iso?(Date.now()-new Date(iso).getTime())/86400000:0;
 const isToday = (dateStr) => dateStr===todayStr();
-
-// ─── HISTORY HELPERS ───────────────────────────────────────────────────────
 const mkEvent = (emoji, text) => ({ id: Date.now()+Math.random(), at: nowISO(), text: `${emoji} ${text}` });
 
-// ─── ALERT HELPERS ─────────────────────────────────────────────────────────
 const getLeadAlerts = (leads) => ({
   urgent:        leads.filter(l=>l.column==="new"&&hoursSince(l.enteredAt)>=24),
   relance3Due:   leads.filter(l=>l.column==="relance1"&&l.relanceDate&&isToday(l.relanceDate)),
@@ -50,30 +44,16 @@ const getLeadAlerts = (leads) => ({
 });
 const getClientAlerts = (clients) => clients.filter(c=>["searching","visit","dossier"].includes(c.column)&&daysSince(c.lastActivity)>=7);
 
-// ─── SEED DATA ─────────────────────────────────────────────────────────────
 const SEED_LEADS = [
-  {id:"l1",firstName:"Amine",lastName:"Labidi",name:"Amine Labidi",phone:"07 69 25 26 42",email:"",source:"Site web",enteredAt:nowISO(),column:"interested",notes:"Potentiellement intéressé — mail envoyé, faire un point fin de semaine",relanceDate:addWorkingDays(new Date(),7),relanceApptId:"rl1",history:[mkEvent("🌱","Lead créé"),mkEvent("🔥","Intérêt confirmé le "+fmtDDMMYYYY(nowISO())+" — dossier envoyé")]},
-  {id:"l2",firstName:"Chloé",lastName:"Ewald",name:"Chloé Ewald",phone:"06 19 61 49 53",email:"",source:"Site web",enteredAt:nowISO(),column:"relance1",notes:"Messagerie → à rappeler",relanceDate:addWorkingDays(new Date(),3),relanceApptId:"rl2",history:[mkEvent("🌱","Lead créé"),mkEvent("📞","Appelé le "+fmtDDMMYYYY(nowISO())+" — pas de réponse")]},
-  {id:"l3",firstName:"Idriss",lastName:"Bouhidel",name:"Idriss Bouhidel",phone:"06 25 11 29 97",email:"",source:"Site web",enteredAt:nowISO(),column:"lost",notes:"Recherche impossible",relanceDate:null,relanceApptId:null,history:[mkEvent("🌱","Lead créé"),mkEvent("❌","Perdu — recherche impossible")]},
-  {id:"l4",firstName:"Leana",lastName:"Tourre",name:"Leana Tourre",phone:"07 67 82 53 72",email:"",source:"Site web",enteredAt:nowISO(),column:"lost",notes:"Faux numéro",relanceDate:null,relanceApptId:null,history:[mkEvent("🌱","Lead créé"),mkEvent("❌","Perdu — faux numéro")]},
-  {id:"l5",firstName:"Sandra",lastName:"Morgado",name:"Sandra Morgado",phone:"06 34 56 35 01",email:"",source:"Site web",enteredAt:nowISO(),column:"waiting",notes:"Décalé sa recherche → à rappeler en juillet",relanceDate:null,relanceApptId:null,history:[mkEvent("🌱","Lead créé")]},
-  {id:"l6",firstName:"Emilie",lastName:"Rouvier",name:"Emilie Rouvier",phone:"06 05 39 83 71",email:"",source:"Site web",enteredAt:nowISO(),column:"relance1",notes:"Messagerie → à rappeler",relanceDate:addWorkingDays(new Date(),3),relanceApptId:"rl3",history:[mkEvent("🌱","Lead créé"),mkEvent("📞","Appelé le "+fmtDDMMYYYY(nowISO())+" — pas de réponse")]},
-  {id:"l7",firstName:"Emma",lastName:"Medoc",name:"Emma Medoc",phone:"",email:"",source:"Site web",enteredAt:nowISO(),column:"lost",notes:"Mail uniquement, pas de téléphone",relanceDate:null,relanceApptId:null,history:[mkEvent("🌱","Lead créé"),mkEvent("❌","Perdu — pas de téléphone")]},
-  {id:"l8",firstName:"Peyton",lastName:"Lebel",name:"Peyton Lebel",phone:"06 16 42 99 52",email:"",source:"Site web",enteredAt:nowISO(),column:"lost",notes:"Déjà trouvé",relanceDate:null,relanceApptId:null,history:[mkEvent("🌱","Lead créé"),mkEvent("❌","Perdu — déjà trouvé")]},
-  {id:"l9",firstName:"Fleur",lastName:"Baudoin",name:"Fleur Baudoin",phone:"06 02 12 20 03",email:"",source:"Site web",enteredAt:nowISO(),column:"relance1",notes:"Messagerie → à rappeler",relanceDate:addWorkingDays(new Date(),3),relanceApptId:"rl4",history:[mkEvent("🌱","Lead créé"),mkEvent("📞","Appelé le "+fmtDDMMYYYY(nowISO())+" — pas de réponse")]},
-  {id:"l10",firstName:"Marietou",lastName:"Drame",name:"Marietou Drame",phone:"07 43 56 34 07",email:"",source:"Site web",enteredAt:nowISO(),column:"lost",notes:"Recherche impossible",relanceDate:null,relanceApptId:null,history:[mkEvent("🌱","Lead créé"),mkEvent("❌","Perdu — recherche impossible")]},
-  {id:"l11",firstName:"Anna",lastName:"Pascal",name:"Anna Pascal",phone:"06 44 85 13 53",email:"",source:"Site web",enteredAt:nowISO(),column:"relance1",notes:"En discussion avec ses parents → à relancer",relanceDate:addWorkingDays(new Date(),3),relanceApptId:"rl5",history:[mkEvent("🌱","Lead créé"),mkEvent("📞","Appelé le "+fmtDDMMYYYY(nowISO())+" — pas de réponse")]},
+  {id:"l1",firstName:"Amine",lastName:"Labidi",name:"Amine Labidi",phone:"07 69 25 26 42",email:"",source:"Site web",enteredAt:nowISO(),column:"interested",notes:"Potentiellement intéressé",relanceDate:addWorkingDays(new Date(),7),relanceApptId:"rl1",history:[mkEvent("🌱","Lead créé")]},
+  {id:"l2",firstName:"Chloé",lastName:"Ewald",name:"Chloé Ewald",phone:"06 19 61 49 53",email:"",source:"Site web",enteredAt:nowISO(),column:"relance1",notes:"Messagerie → à rappeler",relanceDate:addWorkingDays(new Date(),3),relanceApptId:"rl2",history:[mkEvent("🌱","Lead créé")]},
 ];
 const SEED_APPOINTMENTS = [
   {id:"rl1",clientId:null,leadId:"l1",title:"🔥 Relance Chaud — Amine Labidi",date:addWorkingDays(new Date(),7),time:"09:30",duration:5,location:"Téléphone",notes:"07 69 25 26 42",gcalId:null,isRelance:true},
   {id:"rl2",clientId:null,leadId:"l2",title:"📞 Relance J+3 — Chloé Ewald",date:addWorkingDays(new Date(),3),time:"09:30",duration:5,location:"Téléphone",notes:"06 19 61 49 53",gcalId:null,isRelance:true},
-  {id:"rl3",clientId:null,leadId:"l6",title:"📞 Relance J+3 — Emilie Rouvier",date:addWorkingDays(new Date(),3),time:"09:45",duration:5,location:"Téléphone",notes:"06 05 39 83 71",gcalId:null,isRelance:true},
-  {id:"rl4",clientId:null,leadId:"l9",title:"📞 Relance J+3 — Fleur Baudoin",date:addWorkingDays(new Date(),3),time:"10:00",duration:5,location:"Téléphone",notes:"06 02 12 20 03",gcalId:null,isRelance:true},
-  {id:"rl5",clientId:null,leadId:"l11",title:"📞 Relance J+3 — Anna Pascal",date:addWorkingDays(new Date(),3),time:"10:15",duration:5,location:"Téléphone",notes:"06 44 85 13 53",gcalId:null,isRelance:true},
 ];
 const SEED_CLIENTS = [];
 
-// ─── CONSTANTS ─────────────────────────────────────────────────────────────
 const LEAD_COLS = [
   {id:"lost",label:"Perdu",color:"#9ca3af"},
   {id:"new",label:"Nouveau lead",color:"#6366f1"},
@@ -94,7 +74,6 @@ const PROD_COLS = [
 const SOURCE_COLORS = {"Site web":"#3b82f6","Réseaux sociaux":"#8b5cf6","Bouche à oreille":"#10b981","Publicité payante":"#f59e0b"};
 const ALL_SOURCES = ["Site web","Réseaux sociaux","Bouche à oreille","Publicité payante"];
 
-// ─── ICONS ─────────────────────────────────────────────────────────────────
 const ICONS = (s) => ({
   dashboard:<svg width={s} height={s} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg>,
   target:<svg width={s} height={s} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></svg>,
@@ -124,7 +103,6 @@ const ICONS = (s) => ({
 });
 const Ic = ({n,s=16}) => { const m=ICONS(s); return m[n]||null; };
 
-// ─── CSS ───────────────────────────────────────────────────────────────────
 const CSS = `@import url("https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap");
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
 :root{
@@ -140,8 +118,6 @@ const CSS = `@import url("https://fonts.googleapis.com/css2?family=Plus+Jakarta+
 }
 body{background:var(--bg);color:var(--text);font-family:"Plus Jakarta Sans",sans-serif;font-size:14px;line-height:1.5;}
 .app{display:flex;min-height:100vh;}
-
-/* SIDEBAR */
 .sb{width:232px;min-height:100vh;background:var(--surface);border-right:1px solid var(--border);display:flex;flex-direction:column;flex-shrink:0;position:sticky;top:0;height:100vh;box-shadow:2px 0 16px rgba(0,0,0,.04);}
 .sb-brand{padding:20px 18px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:10px;}
 .sb-logo{width:38px;height:38px;background:var(--accent);border-radius:11px;display:flex;align-items:center;justify-content:center;color:#fff;font-weight:800;font-size:15px;box-shadow:0 4px 14px rgba(43,170,224,.35);}
@@ -162,8 +138,6 @@ body{background:var(--bg);color:var(--text);font-family:"Plus Jakarta Sans",sans
 .gcal-btn{display:flex;align-items:center;gap:8px;background:var(--surface2);border:1.5px solid var(--border2);color:var(--text2);padding:9px 12px;border-radius:10px;cursor:pointer;font-family:"Plus Jakarta Sans",sans-serif;font-size:12px;font-weight:600;width:100%;transition:all .2s;}
 .gcal-btn:hover{border-color:var(--accent);color:var(--accent);background:var(--accent-l);}
 .gcal-btn.on{border-color:var(--green);color:var(--green);background:var(--green-bg);}
-
-/* LAYOUT */
 .content{display:flex;flex-direction:column;flex:1;min-width:0;}
 .topbar{background:var(--surface);border-bottom:1px solid var(--border);padding:0 28px;height:54px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:20;box-shadow:0 1px 6px rgba(0,0,0,.04);}
 .tb-date{font-size:12px;color:var(--text3);font-weight:500;}
@@ -174,21 +148,15 @@ body{background:var(--bg);color:var(--text);font-family:"Plus Jakarta Sans",sans
 .tb-pill.red:hover{background:var(--red);color:#fff;}
 .tb-pill.green{background:var(--green-bg);color:var(--green);border-color:#A7F3D0;cursor:default;}
 .main{padding:28px 32px;overflow-y:auto;flex:1;}
-
-/* PAGE HEADER */
 .ph{margin-bottom:22px;}
 .ph-row{display:flex;align-items:flex-end;justify-content:space-between;margin-bottom:22px;}
 .pt{font-size:24px;font-weight:800;color:var(--text);letter-spacing:-.03em;}
 .pt span{color:var(--accent);}
 .ps{color:var(--text3);font-size:12px;font-weight:500;margin-top:3px;}
-
-/* SEARCH BAR */
 .search-bar{display:flex;align-items:center;gap:8px;background:var(--surface);border:1.5px solid var(--border2);border-radius:10px;padding:8px 14px;width:260px;transition:all .18s;}
 .search-bar:focus-within{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-l);}
 .search-bar input{border:none;background:transparent;outline:none;font-family:"Plus Jakarta Sans",sans-serif;font-size:13px;color:var(--text);width:100%;}
 .search-bar input::placeholder{color:var(--text3);}
-
-/* KPI */
 .kpi-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:20px;}
 .kpi{background:var(--surface);border-radius:14px;padding:16px 18px;border:1px solid var(--border);box-shadow:var(--sh);transition:all .2s;}
 .kpi:hover{box-shadow:var(--sh-md);transform:translateY(-2px);}
@@ -201,16 +169,10 @@ body{background:var(--bg);color:var(--text);font-family:"Plus Jakarta Sans",sans
 .kpi.hl .kpi-val{color:#fff;}
 .kpi-sub{font-size:11px;color:var(--text3);margin-top:2px;}
 .kpi.hl .kpi-sub{color:rgba(255,255,255,.8);}
-
-/* DASH GRID */
 .dash-grid{display:grid;grid-template-columns:1.1fr 0.9fr;gap:16px;}
-
-/* SECTION CARD */
 .sc{background:var(--surface);border-radius:14px;border:1px solid var(--border);box-shadow:var(--sh);padding:18px 20px;}
 .sc-title{font-size:14px;font-weight:700;color:var(--text);letter-spacing:-.02em;}
 .sc-hd{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;}
-
-/* TODO */
 .todo-item{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:10px;margin-bottom:7px;border:1.5px solid transparent;transition:all .18s;cursor:pointer;}
 .todo-item:hover{transform:translateX(2px);}
 .todo-item.relance{background:var(--orange-l);border-color:#FDE68A;}
@@ -221,8 +183,6 @@ body{background:var(--bg);color:var(--text);font-family:"Plus Jakarta Sans",sans
 .todo-time{font-size:12px;font-weight:700;padding:3px 10px;border-radius:20px;white-space:nowrap;flex-shrink:0;}
 .todo-time.orange{background:var(--orange-bg);color:#92400e;}
 .todo-time.blue{background:var(--accent-l2);color:var(--accent-d);}
-
-/* ALERT BLOCKS */
 .alert-block{border-radius:12px;overflow:hidden;margin-bottom:9px;border:1.5px solid transparent;}
 .alert-block.red{background:var(--red-l);border-color:#FECACA;}
 .alert-block.orange{background:var(--orange-l);border-color:#FDE68A;}
@@ -239,15 +199,11 @@ body{background:var(--bg);color:var(--text);font-family:"Plus Jakarta Sans",sans
 .alert-pill{font-weight:700;font-size:11px;padding:2px 8px;border-radius:20px;}
 .alert-pill.red{background:var(--red-bg);color:var(--red);}
 .alert-pill.orange{background:var(--orange-bg);color:#92400e;}
-
-/* STATS */
 .stats-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px;}
 .stat-bar-wrap{margin-bottom:8px;}
 .stat-bar-label{display:flex;justify-content:space-between;font-size:11px;font-weight:600;color:var(--text2);margin-bottom:4px;}
 .stat-bar-track{height:7px;background:var(--surface2);border-radius:20px;overflow:hidden;border:1px solid var(--border);}
 .stat-bar-fill{height:100%;border-radius:20px;transition:width .5s ease;}
-
-/* BUTTONS */
 .btn{display:inline-flex;align-items:center;gap:6px;padding:8px 15px;border-radius:9px;font-family:"Plus Jakarta Sans",sans-serif;font-size:13px;font-weight:600;cursor:pointer;border:none;transition:all .18s;}
 .btn-p{background:var(--accent);color:#fff;box-shadow:0 4px 12px rgba(43,170,224,.25);}
 .btn-p:hover{background:var(--accent-d);transform:translateY(-1px);}
@@ -261,12 +217,8 @@ body{background:var(--bg);color:var(--text);font-family:"Plus Jakarta Sans",sans
 .ib{background:none;border:none;cursor:pointer;color:var(--text3);padding:5px;border-radius:8px;transition:all .15s;display:flex;align-items:center;}
 .ib:hover{color:var(--accent);background:var(--accent-l);}
 .ib.del:hover{color:var(--red);background:var(--red-bg);}
-
-/* PHONE LINK */
-a.tel-link{display:inline-flex;align-items:center;gap:5px;color:var(--accent);font-weight:600;text-decoration:none;font-size:12px;padding:3px 8px;border-radius:7px;background:var(--accent-l);border:1px solid var(--accent-l2);transition:all .15s;}
+a.tel-link{display:inline-flex;align-items:center;gap:5px;color:var(--accent);font-weight:600;text-decoration:none;font-size:12px;padding:3px 8px;border-radius:7px;background:var(--accent-l);border:1px solid var(--accent-l2);transition:all .15px;}
 a.tel-link:hover{background:var(--accent);color:#fff;}
-
-/* KANBAN */
 .kb-wrap{display:flex;gap:12px;overflow-x:auto;padding-bottom:12px;align-items:flex-start;}
 .kb-wrap::-webkit-scrollbar{height:5px;}
 .kb-wrap::-webkit-scrollbar-thumb{background:var(--border2);border-radius:4px;}
@@ -284,51 +236,36 @@ a.tel-link:hover{background:var(--accent);color:#fff;}
 .kb-card-name{font-size:13px;font-weight:700;color:var(--text);margin-bottom:4px;}
 .kb-meta{font-size:11px;color:var(--text3);display:flex;flex-direction:column;gap:3px;}
 .kb-empty{text-align:center;padding:16px 0;color:var(--text3);font-size:11px;font-style:italic;}
-
-/* PROD CARD */
 .prod-card{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:11px;margin-bottom:7px;cursor:pointer;transition:all .18s;}
 .prod-card:hover{box-shadow:var(--sh-md);border-color:var(--accent-l2);}
 .prod-card.inactive{border-left:3px solid var(--red);}
 .crit-chip{background:var(--surface2);border:1px solid var(--border);border-radius:5px;padding:2px 6px;font-size:10px;font-weight:600;color:var(--text2);}
 .col-dot{width:8px;height:8px;border-radius:50%;display:inline-block;margin-right:4px;}
-
-/* LIST TABLE */
 .list-table{width:100%;border-collapse:collapse;}
 .list-table th{font-size:10px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.07em;padding:8px 12px;border-bottom:1.5px solid var(--border);text-align:left;}
 .list-table td{padding:11px 12px;border-bottom:1px solid var(--border);font-size:13px;color:var(--text2);}
 .list-table tr:last-child td{border-bottom:none;}
 .list-table tr:hover td{background:var(--surface2);}
 .td-name{color:var(--text);font-weight:700;}
-
-/* VIEW TOGGLE */
 .vt{display:flex;background:var(--surface2);border:1px solid var(--border);border-radius:8px;overflow:hidden;}
 .vt-btn{display:flex;align-items:center;gap:5px;padding:6px 11px;font-size:12px;font-weight:600;cursor:pointer;border:none;background:transparent;color:var(--text3);transition:all .15s;font-family:"Plus Jakarta Sans",sans-serif;}
 .vt-btn.active{background:var(--accent);color:#fff;}
-
-/* MODAL */
 .overlay{position:fixed;inset:0;background:rgba(17,24,39,.45);display:flex;align-items:center;justify-content:center;z-index:100;backdrop-filter:blur(5px);}
 .modal{background:var(--surface);border-radius:18px;padding:26px;width:560px;max-height:90vh;overflow-y:auto;box-shadow:var(--sh-lg);border:1px solid var(--border);}
 .modal.wide{width:660px;}
-.modal.xl{width:720px;}
 .modal-title{font-size:19px;font-weight:800;color:var(--text);letter-spacing:-.03em;margin-bottom:18px;}
 .modal-section{font-size:10px;font-weight:700;color:var(--accent);letter-spacing:.1em;text-transform:uppercase;margin:16px 0 9px;padding-bottom:5px;border-bottom:1.5px solid var(--accent-l2);}
-
-/* FORM */
 .fg{margin-bottom:12px;}
 .fl{display:block;font-size:11px;font-weight:600;color:var(--text2);margin-bottom:4px;}
 .fi{width:100%;background:var(--surface2);border:1.5px solid var(--border2);color:var(--text);padding:8px 12px;border-radius:9px;font-family:"Plus Jakarta Sans",sans-serif;font-size:13px;font-weight:500;outline:none;transition:all .18s;}
 .fi:focus{border-color:var(--accent);background:#fff;box-shadow:0 0 0 3px var(--accent-l);}
 .fr{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
 .fa{display:flex;gap:10px;justify-content:flex-end;margin-top:18px;padding-top:14px;border-top:1px solid var(--border);}
-
-/* HISTORY */
 .hist-item{display:flex;gap:10px;padding:7px 0;border-bottom:1px solid var(--border);}
 .hist-item:last-child{border-bottom:none;}
 .hist-dot{width:7px;height:7px;border-radius:50%;background:var(--accent);flex-shrink:0;margin-top:5px;}
 .hist-text{font-size:12px;color:var(--text2);font-weight:500;}
 .hist-date{font-size:10px;color:var(--text3);margin-top:1px;}
-
-/* AGENDA */
 .appt-card{background:var(--surface2);border:1px solid var(--border);border-radius:12px;padding:13px 15px;display:flex;align-items:flex-start;gap:12px;margin-bottom:9px;transition:all .18s;}
 .appt-card:hover{box-shadow:var(--sh);border-color:var(--accent-l2);}
 .appt-card.synced{border-left:3px solid var(--green);}
@@ -343,10 +280,9 @@ a.tel-link:hover{background:var(--accent);color:#fff;}
 .synced-badge{display:inline-flex;align-items:center;gap:4px;font-size:10px;font-weight:700;color:var(--green);background:var(--green-bg);padding:2px 7px;border-radius:20px;}
 .relance-badge{display:inline-flex;align-items:center;gap:4px;font-size:10px;font-weight:700;color:#92400e;background:var(--orange-bg);padding:2px 7px;border-radius:20px;}
 .info-banner{background:var(--accent-l);border:1.5px solid var(--accent-l2);border-radius:10px;padding:11px 14px;display:flex;align-items:center;gap:10px;margin-bottom:14px;color:var(--accent-d);font-size:12px;font-weight:600;}
-
-/* TOAST */
 @keyframes slideIn{from{transform:translateX(120%);opacity:0;}to{transform:translateX(0);opacity:1;}}
 @keyframes slideOut{from{transform:translateX(0);opacity:1;}to{transform:translateX(120%);opacity:0;}}
+@keyframes slideRight{from{transform:translateX(100%);}to{transform:translateX(0);}}
 .toast-wrap{position:fixed;bottom:24px;right:24px;z-index:200;display:flex;flex-direction:column;gap:8px;pointer-events:none;}
 .toast{background:var(--surface);border:1.5px solid var(--border2);border-radius:12px;padding:12px 16px;box-shadow:var(--sh-lg);display:flex;align-items:center;gap:10px;font-size:13px;font-weight:600;color:var(--text);min-width:260px;pointer-events:auto;animation:slideIn .3s ease;}
 .toast.out{animation:slideOut .3s ease forwards;}
@@ -354,20 +290,15 @@ a.tel-link:hover{background:var(--accent);color:#fff;}
 .toast.success .toast-icon{background:var(--green-bg);color:var(--green);}
 .toast.info .toast-icon{background:var(--accent-l);color:var(--accent);}
 .toast.orange .toast-icon{background:var(--orange-bg);color:var(--orange);}
-
-/* SCROLLBAR */
 ::-webkit-scrollbar{width:4px;}
 ::-webkit-scrollbar-track{background:transparent;}
 ::-webkit-scrollbar-thumb{background:var(--border2);border-radius:4px;}
-
-/* ANIM */
 @keyframes fadeUp{from{opacity:0;transform:translateY(8px);}to{opacity:1;transform:translateY(0);}}
 .fade-in{animation:fadeUp .25s ease;}
 @keyframes pulse{0%,100%{opacity:1;}50%{opacity:.4;}}
 .pulse{animation:pulse 2s infinite;}
 `;
 
-// ─── GCAL ──────────────────────────────────────────────────────────────────
 const GCalSvc = {
   loaded:false,signed:false,
   async init(){return new Promise(res=>{if(window.gapi){res();return;}const s=document.createElement("script");s.src="https://apis.google.com/js/api.js";s.onload=()=>window.gapi.load("client:auth2",async()=>{try{await window.gapi.client.init({apiKey:GCAL.API_KEY,clientId:GCAL.CLIENT_ID,discoveryDocs:["https://www.googleapis.com/discovery/v1/apis/calendar/v3/rest"],scope:GCAL.SCOPES});GCalSvc.loaded=true;GCalSvc.signed=window.gapi.auth2.getAuthInstance().isSignedIn.get();}catch{}res();});document.head.appendChild(s);});},
@@ -376,7 +307,6 @@ const GCalSvc = {
   async del(id){if(GCalSvc.signed&&id)await window.gapi.client.calendar.events.delete({calendarId:GCAL.CALENDAR_ID,eventId:id});}
 };
 
-// ─── CSV EXPORT ────────────────────────────────────────────────────────────
 const exportCSV = (data, filename) => {
   if(!data.length)return;
   const keys=Object.keys(data[0]);
@@ -384,6 +314,35 @@ const exportCSV = (data, filename) => {
   const blob=new Blob(["\uFEFF"+rows.join("\n")],{type:"text/csv;charset=utf-8;"});
   const a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download=filename;a.click();
 };
+
+// ─── PLANNING DATA ────────────────────────────────────────────────────────
+const PLANNING_WEEKS = [
+  {num:"S1",dates:"24–28 mars",label:"Fondations",color:"#3BB8F0",colorLight:"#E0F4FD",colorText:"#0D6EA3",tasks:[
+    {id:"p_w1t1",name:"Refonte du site",preview:"Couleurs, logo, nom SOLOC'",isNew:false,desc:"Mise aux couleurs de SOLOC'. Changement de domaine vers solocimmo.fr, test formulaire contact.",points:["Intégrer la charte graphique SOLOC' (logo, couleurs, typo)","Renommer le site en SOLOC'","Vérifier toutes les pages existantes","Tester le formulaire de contact"]},
+    {id:"p_w1t2",name:"Docs à refaire DA SOLOC'",preview:"Lettres de mission, liste docs, formulaire, grille",isNew:true,desc:"Refaire tous les documents officiels aux couleurs et au nom de SOLOC'.",points:["Lettres de mission (x10)","Liste des documents (x3)","Formulaire (x1)","Grille tarifaire"]},
+    {id:"p_w1t3",name:"Documenter le process client",preview:"Qualification, solvabilité, déroulé",isNew:false,desc:"Formaliser par écrit le process complet de prise en charge d'un client.",points:["Critères de qualification (solvabilité, réalité du marché)","Déroulé : contact, WhatsApp, recherche, visite, dossier, bail","Process de visite virtuelle commentée","Checklist dossier client"]},
+    {id:"p_w1t4",name:"Soft launch réseau bailleur",preview:"Relance contacts, démarchage, prompt",isNew:true,desc:"Relancer le réseau bailleur et préparer le démarchage avec Emmy.",points:["Relance des contacts principaux","Prévoir liste de contacts à démarcher","Prévoir Emmy à envoyer pour démarchage (Interimob, Régie Franchet, etc.)","Faire un prompt pour démarchage"]}
+  ]},
+  {num:"S2",dates:"31 mars–4 avr",label:"Contenu & process",color:"#2DD4A0",colorLight:"#D1FAF0",colorText:"#0A7A5A",tasks:[
+    {id:"p_w2t1",name:"Formation Emmy n°1",preview:"Process client, lettres de mission, CRM",isNew:false,desc:"Première session de formation avec Emmy. Objectif : maîtrise du process de bout en bout.",points:["Présenter le process documenté en S1","Expliquer les lettres de mission","Formation CRM : saisie, suivi, statuts","Exercice pratique : simuler un process complet d'un client avec Charles","Valider en fin de semaine que c'est toujours compris"]},
+    {id:"p_w2t2",name:"Tournage TikTok — session groupée",preview:"Clefs, directions, planning Lilou",isNew:false,desc:"Organiser et réaliser une session de tournage TikTok groupée.",points:["Trouver 4/5 clefs pour le tournage (Charles + apparts Purple ?)","Tournage sur une après-midi","Trouver 4/5 directions pour chaque vidéo (ex : voici ce que j'ai vu aujourd'hui...)","Faire un planning de montage pour Lilou"]},
+
+    {id:"p_w2t4",name:"Premiers posts LinkedIn",preview:"Annoncer SOLOC', mutations pro",isNew:true,desc:"Lancer la présence LinkedIn de SOLOC' avec 2 posts ciblant les mutations professionnelles.",points:["Post 1 : Annonce du lancement SOLOC'","Post 2 : Problématique mutation pro à Lyon","Cibler DRH, offices notariaux, agences de relocation","Rejoindre les groupes immobilier Lyon","Prévoir automatisation + thèmes ensuite"]}
+  ]},
+  {num:"S3",dates:"7–11 avr",label:"Activation",color:"#F0913B",colorLight:"#FEE9D5",colorText:"#A8520E",tasks:[
+    {id:"p_w3t1",name:"Lancement TikTok/Reels",preview:"Rythme 3 posts/semaine",isNew:false,desc:"Mise en ligne du compte TikTok/Reels SOLOC' et publication des premières vidéos.",points:["Créer et optimiser le compte TikTok SOLOC'","Publier les 3 premières vidéos du batch","Bio, liens, CTA vers le site","Définir hashtags et stratégie de publication"]},
+    {id:"p_w3t2",name:"Démarchage écoles",preview:"Cibler, préparer, démarcher",isNew:false,desc:"Préparer et lancer le démarchage des établissements scolaires lyonnais.",points:["Commencer à prévoir les écoles à cibler","Préparer une présentation","Prévoir le démarchage"]},
+    {id:"p_w3t3",name:"Brief pub avec Rodolphe",preview:"Budget, canaux, planning lancement",isNew:false,desc:"Définir avec Rodolphe le budget, les canaux et le planning de lancement pub.",points:["Budget mensuel à définir","Canaux à définir : Meta Ads","Canaux à définir : Google Ads","Planning de lancement","Se renseigner Meta Ads (fonctionnement, visuels à prévoir, etc.)"]},
+    {id:"p_w3t4",name:"Formation Emmy n°2",preview:"Transformation leads, test, CRM",isNew:false,desc:"Session de validation opérationnelle avec Emmy.",points:["Finalisation transformation leads","Test avec Charles pour valider","Application du CRM"]},
+    {id:"p_w3t5",name:"LinkedIn — rythme 2/sem",preview:"Automatisation, thèmes, grosses entreprises",isNew:true,desc:"Finaliser l'automatisation LinkedIn et identifier les cibles entreprises.",points:["Finaliser automatisation de 2 posts/semaine LinkedIn","Mise à jour des thèmes à aborder","Identifier grosses entreprises / RH"]}
+  ]},
+  {num:"S4",dates:"14–18 avr",label:"Premiers dossiers",color:"#3B8FF0",colorLight:"#DBEAFE",colorText:"#1D4ED8",tasks:[
+
+    {id:"p_w4t2",name:"Lancement Meta Ads",preview:"Validation, lancement, conversion, A/B",isNew:false,desc:"Valider et lancer les premières campagnes payantes.",points:["Validation du tout","Lancement","Voir la conversion","Test A/B"]},
+    {id:"p_w4t3",name:"Point hebdo Emmy",preview:"Formation, validation, suite",isNew:false,desc:"Point de suivi complet avec Emmy sur les formations et la suite.",points:["Point sur la formation","Validation des formations faites","Voir les points à retravailler / compléter","Questions et difficultés rencontrées","Voir la suite"]},
+    {id:"p_w4t4",name:"Bilan J+30 avec Rodolphe",preview:"Leads, conversion, point global",isNew:false,desc:"Bilan complet du premier mois avec Rodolphe.",points:["Leads générés","Conversion","Point global"]}
+  ]}
+];
 
 // ══════════════════════════════════════════════════════════════════════════
 function App(){
@@ -401,8 +360,9 @@ function App(){
   const [dragOver,setDragOver]=useState(null);
   const [search,setSearch]=useState("");
   const [toasts,setToasts]=useState([]);
+  const [planTasks,setPlanTasks]=useState({});
+  const [planPanel,setPlanPanel]=useState(null);
 
-  // Inject CSS
   useEffect(()=>{
     const el=document.createElement("style");
     el.setAttribute("data-soloc","1");
@@ -419,7 +379,6 @@ function App(){
   const [leadError,setLeadError]=useState("");
   const [apptForm,setApptForm]=useState(blankAppt);
 
-  // ── TOAST ──
   const addToast = useCallback((text,type="success")=>{
     const id=Date.now();
     setToasts(p=>[...p,{id,text,type}]);
@@ -427,53 +386,43 @@ function App(){
     setTimeout(()=>setToasts(p=>p.filter(t=>t.id!==id)),3600);
   },[]);
 
-  // ── PERSIST — storage first, seeds only if empty ──
   useEffect(()=>{(async()=>{
     const l=await storage.get("s7_leads");
     const c=await storage.get("s7_clients");
     const a=await storage.get("s7_appts");
+    const pt=await storage.get("s7_planTasks");
     setLeads(l&&l.length?l:SEED_LEADS);
     setClients(c&&c.length?c:SEED_CLIENTS);
     setAppts(a&&a.length?a:SEED_APPOINTMENTS);
+    setPlanTasks(pt||{});
     setLoaded(true);
   })();},[]);
   useEffect(()=>{if(loaded)storage.set("s7_leads",leads);},[leads,loaded]);
   useEffect(()=>{if(loaded)storage.set("s7_clients",clients);},[clients,loaded]);
   useEffect(()=>{if(loaded)storage.set("s7_appts",appts);},[appts,loaded]);
+  useEffect(()=>{if(loaded)storage.set("s7_planTasks",planTasks);},[planTasks,loaded]);
 
-  // ── BACKUP ──
   const doBackup = useCallback((manual=false) => {
-    const data = {
-      version: "s6",
-      exportedAt: new Date().toISOString(),
-      leads, clients, appts
-    };
-    const blob = new Blob([JSON.stringify(data, null, 2)], {type:"application/json"});
+    const data = {version:"s7",exportedAt:new Date().toISOString(),leads,clients,appts,planTasks};
+    const blob = new Blob([JSON.stringify(data,null,2)],{type:"application/json"});
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
-    const date = new Date().toISOString().split("T")[0];
-    a.href = url;
-    a.download = "soloc-backup-"+date+".json";
-    a.click();
+    a.href=url; a.download="soloc-backup-"+new Date().toISOString().split("T")[0]+".json"; a.click();
     URL.revokeObjectURL(url);
-    storage.set("s7_lastBackup", new Date().toISOString());
+    storage.set("s7_lastBackup",new Date().toISOString());
     if(manual) addToast("💾 Sauvegarde téléchargée","success");
-  }, [leads, clients, appts]);
+  },[leads,clients,appts,planTasks]);
 
   useEffect(()=>{
-    if(!loaded) return;
+    if(!loaded)return;
     (async()=>{
-      const last = await storage.get("s7_lastBackup");
-      const lastDate = last ? new Date(last) : null;
-      const daysSinceLast = lastDate ? (Date.now()-lastDate.getTime())/86400000 : 999;
-      if(daysSinceLast >= 7){
-        // Small delay so app is fully rendered first
-        setTimeout(()=>doBackup(false), 2000);
-      }
+      const last=await storage.get("s7_lastBackup");
+      const lastDate=last?new Date(last):null;
+      const daysSinceLast=lastDate?(Date.now()-lastDate.getTime())/86400000:999;
+      if(daysSinceLast>=7) setTimeout(()=>doBackup(false),2000);
     })();
   },[loaded]);
 
-  // ── ALERTS ──
   const la=getLeadAlerts(leads);
   const ca=getClientAlerts(clients);
   const totalAlerts=la.urgent.length+la.relance3Due.length+la.relance7Due.length+la.relance3Late.length+la.relance7Late.length+la.interestedDue.length+la.interestedLate.length+ca.length;
@@ -481,68 +430,42 @@ function App(){
   const todayRelances=appts.filter(a=>a.isRelance&&a.date===todayStr());
   const todayClientAppts=appts.filter(a=>!a.isRelance&&a.date===todayStr());
   const todayCount=todayRelances.length+todayClientAppts.length;
-
-  // ── STATS ──
   const activeSearching=clients.filter(c=>["searching","visit","dossier"].includes(c.column)).length;
   const loggedThisMonth=clients.filter(c=>["signed","paid"].includes(c.column)&&hoursSince(c.enteredAt)<=(31*24)).length;
   const pendingCA=clients.filter(c=>c.column==="signed").length*1200;
   const leadsThisWeek=leads.filter(l=>l.column!=="lost"&&hoursSince(l.enteredAt)<=168).length;
-
-  // ── CONVERSION STATS ──
-  const convStats = ALL_SOURCES.map(src=>{
-    const total=leads.filter(l=>l.source===src).length;
-    const converted=clients.filter(c=>c.notes?.includes(src)||leads.find(l=>l.id===c.fromLeadId)?.source===src).length;
-    const qualified=leads.filter(l=>l.source===src&&l.column==="qualified").length;
-    return {src,total,qualified,rate:total>0?Math.round((qualified/total)*100):0};
-  }).filter(s=>s.total>0);
-
-  // ── SEARCH FILTER ──
+  const convStats=ALL_SOURCES.map(src=>{const total=leads.filter(l=>l.source===src).length;const qualified=leads.filter(l=>l.source===src&&l.column==="qualified").length;return{src,total,qualified,rate:total>0?Math.round((qualified/total)*100):0};}).filter(s=>s.total>0);
   const q=search.toLowerCase();
   const filteredLeads=leads.filter(l=>l.name.toLowerCase().includes(q)||l.phone.includes(q)||l.email.toLowerCase().includes(q));
   const filteredClients=clients.filter(c=>c.name.toLowerCase().includes(q)||c.phone.includes(q)||c.email.toLowerCase().includes(q));
 
-  // ── DRAG & DROP ──
-  const onDragStart=(e,id,type)=>{
-    dragItem.current=id;
-    dragType.current=type;
-    e.dataTransfer.effectAllowed="move";
-  };
+  const onDragStart=(e,id,type)=>{dragItem.current=id;dragType.current=type;e.dataTransfer.effectAllowed="move";};
 
-  // ── MOVE LEAD ──
-  const moveLead=async(lead, col)=>{
-    if(lead.column===col) return;
-    let updatedLead={...lead, column:col};
+  const moveLead=async(lead,col)=>{
+    if(lead.column===col)return;
+    let updatedLead={...lead,column:col};
     let newAppt=null;
     const today=fmtDDMMYYYY(nowISO());
     let histEvent=null;
-    if(col==="relance1"){
-      histEvent=mkEvent("📞","Appelé le "+today+" — pas de réponse");
-    } else if(col==="relance2"){
-      const r1Event=lead.history?.find(h=>h.text.includes("Appelé le"));
-      const r1Date=r1Event?r1Event.text.match(/\d{2}\/\d{2}\/\d{4}/)?.[0]||today:today;
-      histEvent=mkEvent("🔁","Appel relance J+3 le "+r1Date+" — pas de réponse");
-    } else if(col==="interested"){
-      histEvent=mkEvent("🔥","Intérêt confirmé le "+today+" — dossier envoyé");
+    if(col==="relance1"){histEvent=mkEvent("📞","Appelé le "+today+" — pas de réponse");}
+    else if(col==="relance2"){histEvent=mkEvent("🔁","Appel relance J+3 — pas de réponse");}
+    else if(col==="interested"){
+      histEvent=mkEvent("🔥","Intérêt confirmé le "+today);
       const targetDate=addWorkingDays(new Date(),7);
       const time=findRelanceSlot(appts,targetDate);
       const apptId="ri"+Date.now();
       newAppt={id:apptId,clientId:null,leadId:lead.id,title:"🔥 Relance Chaud — "+lead.name,date:targetDate,time,duration:5,location:"Téléphone",notes:lead.phone,gcalId:null,isRelance:true};
       updatedLead={...updatedLead,relanceDate:targetDate,relanceApptId:apptId};
       addToast("📅 Relance Chaud planifiée — "+fmtDate(targetDate).full+" à "+time,"orange");
-    } else if(col==="qualified"){
-      histEvent=mkEvent("✅","Qualifié le "+today);
-    } else if(col==="lost"){
-      histEvent=mkEvent("❌","Perdu le "+today);
-    } else if(col==="new"){
-      histEvent=mkEvent("↩️","Remis en nouveau lead le "+today);
     }
-    if(histEvent) updatedLead={...updatedLead,history:[...(lead.history||[]),histEvent]};
+    else if(col==="qualified"){histEvent=mkEvent("✅","Qualifié le "+today);}
+    else if(col==="lost"){histEvent=mkEvent("❌","Perdu le "+today);}
+    else if(col==="new"){histEvent=mkEvent("↩️","Remis en nouveau lead le "+today);}
+    if(histEvent)updatedLead={...updatedLead,history:[...(lead.history||[]),histEvent]};
     if(col==="relance1"||col==="relance2"){
       const daysOff=col==="relance1"?3:7;
       const targetDate=addWorkingDays(new Date(),daysOff);
-      if(lead.relanceApptId){
-        setAppts(p=>p.filter(a=>a.id!==lead.relanceApptId));
-      }
+      if(lead.relanceApptId)setAppts(p=>p.filter(a=>a.id!==lead.relanceApptId));
       const time=findRelanceSlot(appts,targetDate);
       const apptId="ra"+Date.now();
       const label=col==="relance1"?"Relance J+3":"Relance J+7";
@@ -555,58 +478,30 @@ function App(){
       updatedLead={...updatedLead,relanceDate:null,relanceApptId:null};
     }
     setLeads(p=>p.map(l=>l.id===lead.id?updatedLead:l));
-    if(newAppt) setAppts(p=>[...p,newAppt]);
+    if(newAppt)setAppts(p=>[...p,newAppt]);
   };
 
-  // ── MOVE CLIENT ──
-  const moveClient=(client, col)=>{
-    if(client.column===col) return;
+  const moveClient=(client,col)=>{
+    if(client.column===col)return;
     setClients(p=>p.map(c=>c.id===client.id?{...c,column:col,lastActivity:nowISO()}:c));
     addToast("✓ "+client.name+" → "+PROD_COLS.find(c=>c.id===col)?.label,"success");
   };
 
   const onDrop=async(e,col)=>{
-    e.preventDefault();
-    setDragOver(null);
-    if(!dragItem.current) return;
-    if(dragType.current==="lead"){
-      const lead=leads.find(l=>l.id===dragItem.current);
-      if(lead) await moveLead(lead, col);
-    } else {
-      const client=clients.find(c=>c.id===dragItem.current);
-      if(client) moveClient(client, col);
-    }
-    dragItem.current=null;
-    dragType.current=null;
+    e.preventDefault();setDragOver(null);
+    if(!dragItem.current)return;
+    if(dragType.current==="lead"){const lead=leads.find(l=>l.id===dragItem.current);if(lead)await moveLead(lead,col);}
+    else{const client=clients.find(c=>c.id===dragItem.current);if(client)moveClient(client,col);}
+    dragItem.current=null;dragType.current=null;
   };
 
-  // ── CONVERT ──
-  const blankCriteria = {type:"",budgetMax:"",sectors:"",surfaceMin:"",moveDate:"",specific:"",profile:"",revenues:"",guarantor:""};
-
-  const convertLead=(lead)=>{
-    setSelectedLead(lead);
-    setQualifyForm({
-      name: lead.name||"",
-      phone: lead.phone||"",
-      email: lead.email||"",
-      notes: lead.notes||"",
-      criteria: {...blankCriteria},
-    });
-    setModal("qualify");
-  };
-
+  const blankCriteria={type:"",budgetMax:"",sectors:"",surfaceMin:"",moveDate:"",specific:"",profile:"",revenues:"",guarantor:""};
+  const convertLead=(lead)=>{setSelectedLead(lead);setQualifyForm({name:lead.name||"",phone:lead.phone||"",email:lead.email||"",notes:lead.notes||"",criteria:{...blankCriteria}});setModal("qualify");};
   const saveQualify=()=>{
-    if(selectedLead?.relanceApptId) setAppts(p=>p.filter(a=>a.id!==selectedLead.relanceApptId));
-    const nc={
-      id:"c"+Date.now(),
-      name:qualifyForm.name, phone:qualifyForm.phone, email:qualifyForm.email,
-      enteredAt:nowISO(), column:"searching",
-      criteria:qualifyForm.criteria,
-      notes:qualifyForm.notes, lastActivity:nowISO()
-    };
+    if(selectedLead?.relanceApptId)setAppts(p=>p.filter(a=>a.id!==selectedLead.relanceApptId));
+    const nc={id:"c"+Date.now(),name:qualifyForm.name,phone:qualifyForm.phone,email:qualifyForm.email,enteredAt:nowISO(),column:"searching",criteria:qualifyForm.criteria,notes:qualifyForm.notes,lastActivity:nowISO()};
     setLeads(p=>p.map(l=>l.id===selectedLead.id?{...l,column:"qualified",history:[...(l.history||[]),mkEvent("🏠","Converti en client le "+fmtDDMMYYYY(nowISO()))]}:l));
-    setClients(p=>[...p,nc]);
-    setModal(null);
+    setClients(p=>[...p,nc]);setModal(null);
     addToast("🏠 "+nc.name+" converti en client !","success");
   };
 
@@ -614,16 +509,10 @@ function App(){
   const pushGcal=async(appt)=>{if(!gcal){addToast("Connectez Google Calendar d'abord","info");return;}const cl=clients.find(c=>c.id===appt.clientId);try{const id=await GCalSvc.create(appt,cl?.name||"");setAppts(p=>p.map(a=>a.id===appt.id?{...a,gcalId:id}:a));addToast("✓ Synced dans Google Calendar","success");}catch{addToast("Erreur GCal","info");}};
 
   const saveLead=()=>{
-    const hasIdentity = leadForm.firstName.trim() || leadForm.lastName.trim();
-    const hasContact  = leadForm.phone.trim() || leadForm.email.trim();
-    if(!hasIdentity || !hasContact){
-      setLeadError(!hasIdentity
-        ? "Renseignez au moins un prénom ou un nom."
-        : "Renseignez au moins un téléphone ou un email."
-      );
-      return;
-    }
-    const fullName = [leadForm.firstName.trim(), leadForm.lastName.trim()].filter(Boolean).join(" ");
+    const hasIdentity=leadForm.firstName.trim()||leadForm.lastName.trim();
+    const hasContact=leadForm.phone.trim()||leadForm.email.trim();
+    if(!hasIdentity||!hasContact){setLeadError(!hasIdentity?"Renseignez au moins un prénom ou un nom.":"Renseignez au moins un téléphone ou un email.");return;}
+    const fullName=[leadForm.firstName.trim(),leadForm.lastName.trim()].filter(Boolean).join(" ");
     const nl={id:"l"+Date.now(),...leadForm,name:fullName,enteredAt:nowISO(),column:"new",relanceDate:null,relanceApptId:null,history:[mkEvent("🌱","Lead créé — source : "+leadForm.source)]};
     setLeads(p=>[...p,nl]);setModal(null);setLeadForm(blankLead);setLeadError("");
     addToast("✓ Lead "+fullName+" ajouté","success");
@@ -633,32 +522,19 @@ function App(){
   const deleteClient=(id)=>{if(confirm("Supprimer ?"))setClients(p=>p.filter(c=>c.id!==id));};
   const deleteLead=async(lead)=>{if(!confirm("Supprimer ?"))return;if(lead.relanceApptId){const a=appts.find(x=>x.id===lead.relanceApptId);if(a?.gcalId)await GCalSvc.del(a.gcalId);setAppts(p=>p.filter(x=>x.id!==lead.relanceApptId));}setLeads(p=>p.filter(l=>l.id!==lead.id));};
   const deleteAppt=async(a)=>{if(!confirm("Supprimer ?"))return;if(a.gcalId)await GCalSvc.del(a.gcalId);if(a.leadId)setLeads(p=>p.map(l=>l.id===a.leadId?{...l,relanceApptId:null,relanceDate:null}:l));setAppts(p=>p.filter(x=>x.id!==a.id));};
-
   const leadUrgency=(l)=>{const h=hoursSince(l.enteredAt);if(["lost","qualified","interested","waiting"].includes(l.column))return null;if(h>=48)return"red";if(h>=24)return"orange";return null;};
-
-  // ── ADD NEW CLIENT ──
-  const addNewClient = () => {
-    const nc = {
-      id: "c"+Date.now(), name:"Nouveau client", phone:"", email:"",
-      enteredAt: nowISO(), column:"searching",
-      criteria:{type:"",budgetMax:"",sectors:"",surfaceMin:"",moveDate:"",specific:"",profile:"",revenues:"",guarantor:""},
-      notes:"", lastActivity:nowISO()
-    };
-    setClients(p=>[...p,nc]);
-    setSelectedClient(nc);
-    setModal("fiche");
-  };
-
-  // ── EXPORT HELPERS ──
+  const addNewClient=()=>{const nc={id:"c"+Date.now(),name:"Nouveau client",phone:"",email:"",enteredAt:nowISO(),column:"searching",criteria:{type:"",budgetMax:"",sectors:"",surfaceMin:"",moveDate:"",specific:"",profile:"",revenues:"",guarantor:""},notes:"",lastActivity:nowISO()};setClients(p=>[...p,nc]);setSelectedClient(nc);setModal("fiche");};
   const exportLeads=()=>exportCSV(leads.map(l=>({Nom:l.name,Téléphone:l.phone,Email:l.email,Source:l.source,Statut:LEAD_COLS.find(c=>c.id===l.column)?.label||l.column,Notes:l.notes})),"soloc_leads.csv");
   const exportClients=()=>exportCSV(clients.map(c=>({Nom:c.name,Téléphone:c.phone,Email:c.email,Statut:PROD_COLS.find(x=>x.id===c.column)?.label||c.column,Type:c.criteria.type,Budget:c.criteria.budgetMax,Secteurs:c.criteria.sectors,Profil:c.criteria.profile,Revenus:c.criteria.revenues,Notes:c.notes})),"soloc_clients.csv");
 
-  // ──────────────────────────────────────────────────────────────────────────
+  // Plan stats
+  const planTotal=PLANNING_WEEKS.reduce((a,w)=>a+w.tasks.length,0);
+  const planDone=PLANNING_WEEKS.reduce((a,w)=>a+w.tasks.filter(t=>(planTasks[t.id]||{}).status==="done").length,0);
+  const planPct=planTotal?Math.round(planDone/planTotal*100):0;
+
   return(
     <>
       <div className="app">
-
-        {/* SIDEBAR */}
         <aside className="sb">
           <div className="sb-brand">
             <div className="sb-logo">S</div>
@@ -671,6 +547,7 @@ function App(){
               {id:"prospection",icon:"target",label:"Prospection",badge:newLeads||null,bc:"red"},
               {id:"production",icon:"home",label:"Production",badge:ca.length||null,bc:"orange"},
               {id:"agenda",icon:"calendar",label:"Agenda",badge:todayCount||null,bc:"blue"},
+              {id:"planaction",icon:"todo",label:"Plan d'action",badge:planPct<100?`${planDone}/${planTotal}`:null,bc:"blue"},
               {id:"stats",icon:"chart",label:"Statistiques",badge:null,bc:""},
             ].map(n=>(
               <div key={n.id} className={`nav-item ${page===n.id?"active":""}`} onClick={()=>setPage(n.id)}>
@@ -684,7 +561,6 @@ function App(){
             <button className={`gcal-btn ${gcal?"on":""}`} onClick={connectGcal}>
               <Ic n="google" s={14}/>{gcal?"Google connecté ✓":"Connecter Google Cal"}
             </button>
-            {gcal&&<p style={{fontSize:10,color:"var(--text3)",textAlign:"center",marginTop:5,fontWeight:500}}>Sync Apple Calendar 🍎 actif</p>}
             <button onClick={()=>doBackup(true)} style={{marginTop:10,width:"100%",display:"flex",alignItems:"center",justifyContent:"center",gap:6,padding:"8px",borderRadius:8,border:"1.5px solid var(--border2)",background:"var(--surface)",color:"var(--text3)",fontSize:11,fontWeight:600,cursor:"pointer"}}>
               💾 Sauvegarder maintenant
             </button>
@@ -692,11 +568,9 @@ function App(){
         </aside>
 
         <div className="content">
-          {/* TOPBAR */}
           <div className="topbar">
-            <div className="tb-date">Lundi 9 mars 2026</div>
+            <div className="tb-date">{new Date().toLocaleDateString("fr-FR",{weekday:"long",day:"numeric",month:"long",year:"numeric"})}</div>
             <div className="tb-right">
-              {/* GLOBAL SEARCH */}
               <div className="search-bar">
                 <Ic n="search" s={13}/>
                 <input placeholder="Rechercher nom, tél, email…" value={search} onChange={e=>setSearch(e.target.value)}/>
@@ -722,78 +596,25 @@ function App(){
                 </div>
                 <div className="kpi-grid">
                   <div className="kpi hl"><div className="kpi-ic"><Ic n="home" s={16}/></div><div className="kpi-lbl">En recherche active</div><div className="kpi-val">{activeSearching}</div><div className="kpi-sub">clients suivis</div></div>
-                  <div className="kpi"><div className="kpi-ic" style={{background:"var(--green-bg)",color:"var(--green)"}}><Ic n="check" s={16}/></div><div className="kpi-lbl">Logés ce mois</div><div className="kpi-val">{loggedThisMonth}</div><div className="kpi-sub" style={{color:"var(--green)",fontWeight:600}}>↑ ce mois-ci</div></div>
-                  <div className="kpi"><div className="kpi-ic" style={{background:"var(--orange-bg)",color:"var(--orange)"}}><Ic n="euro" s={16}/></div><div className="kpi-lbl">CA en attente</div><div className="kpi-val">{pendingCA.toLocaleString("fr-FR")} €</div><div className="kpi-sub">bail signé</div></div>
-                  <div className="kpi"><div className="kpi-ic" style={{background:"var(--purple-bg)",color:"var(--purple)"}}><Ic n="target" s={16}/></div><div className="kpi-lbl">Leads cette semaine</div><div className="kpi-val">{leadsThisWeek}</div><div className="kpi-sub">{newLeads} non traité{newLeads>1?"s":""}</div></div>
+                  <div className="kpi"><div className="kpi-ic" style={{background:"var(--green-bg)",color:"var(--green)"}}><Ic n="check" s={16}/></div><div className="kpi-lbl">Logés ce mois</div><div className="kpi-val">{loggedThisMonth}</div></div>
+                  <div className="kpi"><div className="kpi-ic" style={{background:"var(--orange-bg)",color:"var(--orange)"}}><Ic n="euro" s={16}/></div><div className="kpi-lbl">CA en attente</div><div className="kpi-val">{pendingCA.toLocaleString("fr-FR")} €</div></div>
+                  <div className="kpi"><div className="kpi-ic" style={{background:"var(--purple-bg)",color:"var(--purple)"}}><Ic n="target" s={16}/></div><div className="kpi-lbl">Leads cette semaine</div><div className="kpi-val">{leadsThisWeek}</div></div>
                 </div>
-
-                {/* TO DO DU JOUR */}
                 {(todayRelances.length>0||todayClientAppts.length>0)&&(
                   <div className="sc" style={{marginBottom:16,borderLeft:"4px solid var(--accent)"}}>
-                    <div className="sc-hd">
-                      <div style={{display:"flex",alignItems:"center",gap:8}}>
-                        <div className="sc-title">📋 To Do — Aujourd&apos;hui</div>
-                        <span style={{background:"var(--accent)",color:"#fff",borderRadius:20,padding:"1px 8px",fontSize:11,fontWeight:700}}>{todayRelances.length+todayClientAppts.length}</span>
-                      </div>
-                    </div>
-                    {todayRelances.map(a=>{
-                      const lead=leads.find(l=>l.id===a.leadId);
-                      return(<div key={a.id} className="todo-item relance" onClick={()=>setPage("prospection")}><div className="todo-dot" style={{background:"var(--orange)"}}/><div style={{flex:1}}><div className="todo-name">{a.title}</div><div className="todo-meta"><Ic n="phone" s={10}/> {lead?.phone||a.notes}</div></div><span className="todo-time orange">{a.time}</span></div>);
-                    })}
-                    {todayClientAppts.map(a=>{
-                      const cl=clients.find(c=>c.id===a.clientId);
-                      return(<div key={a.id} className="todo-item visit" onClick={()=>setPage("agenda")}><div className="todo-dot" style={{background:"var(--accent)"}}/><div style={{flex:1}}><div className="todo-name">{a.title}</div><div className="todo-meta">{cl?.name} · {a.location}</div></div><span className="todo-time blue">{a.time}</span></div>);
-                    })}
+                    <div className="sc-hd"><div style={{display:"flex",alignItems:"center",gap:8}}><div className="sc-title">📋 To Do — Aujourd&apos;hui</div><span style={{background:"var(--accent)",color:"#fff",borderRadius:20,padding:"1px 8px",fontSize:11,fontWeight:700}}>{todayRelances.length+todayClientAppts.length}</span></div></div>
+                    {todayRelances.map(a=>{const lead=leads.find(l=>l.id===a.leadId);return(<div key={a.id} className="todo-item relance" onClick={()=>setPage("prospection")}><div className="todo-dot" style={{background:"var(--orange)"}}/><div style={{flex:1}}><div className="todo-name">{a.title}</div><div className="todo-meta">{lead?.phone||a.notes}</div></div><span className="todo-time orange">{a.time}</span></div>);})}
+                    {todayClientAppts.map(a=>{const cl=clients.find(c=>c.id===a.clientId);return(<div key={a.id} className="todo-item visit" onClick={()=>setPage("agenda")}><div className="todo-dot" style={{background:"var(--accent)"}}/><div style={{flex:1}}><div className="todo-name">{a.title}</div><div className="todo-meta">{cl?.name} · {a.location}</div></div><span className="todo-time blue">{a.time}</span></div>);})}
                   </div>
                 )}
-
                 <div className="dash-grid">
                   <div className="sc">
-                    <div className="sc-hd"><div className="sc-title">⚡ Alertes &amp; Actions</div>{totalAlerts===0&&!newLeads&&<span style={{fontSize:11,fontWeight:600,color:"var(--green)"}}>✓ Tout à jour</span>}</div>
-                    {la.urgent.length>0&&(<div className="alert-block red"><div className="alert-hd red"><span className="pulse">🔴</span>{la.urgent.length} lead{la.urgent.length>1?"s":""} sans action +24h</div><div className="alert-rows">{la.urgent.map(l=>(<div key={l.id} className="alert-row"><div><div className="alert-name">{l.name}</div><div className="alert-meta"><a className="tel-link" href={"tel:"+l.phone.replace(/\s/g,"")}><Ic n="phone" s={10}/>{l.phone}</a></div></div><div style={{display:"flex",gap:7,alignItems:"center"}}><span className="alert-pill red">+{Math.floor(hoursSince(l.enteredAt))}h</span><button className="btn btn-sm" style={{background:"var(--red)",color:"#fff",fontSize:11}} onClick={()=>setPage("prospection")}>Traiter</button></div></div>))}</div></div>)}
-                    {la.relance3Due.length>0&&(<div className="alert-block orange"><div className="alert-hd orange">📞 {la.relance3Due.length} relance J+3 aujourd&apos;hui</div><div className="alert-rows">{la.relance3Due.map(l=>{const a=appts.find(x=>x.id===l.relanceApptId);return(<div key={l.id} className="alert-row"><div><div className="alert-name">{l.name}</div><div className="alert-meta"><a className="tel-link" href={"tel:"+l.phone.replace(/\s/g,"")}><Ic n="phone" s={10}/>{l.phone}</a> · {a?"à "+a.time:""}</div></div><button className="btn btn-sm btn-g" onClick={()=>setPage("agenda")}>Agenda</button></div>);})}</div></div>)}
-                    {la.relance7Due.length>0&&(<div className="alert-block orange"><div className="alert-hd orange">📞 {la.relance7Due.length} relance J+7 aujourd&apos;hui</div><div className="alert-rows">{la.relance7Due.map(l=>{const a=appts.find(x=>x.id===l.relanceApptId);return(<div key={l.id} className="alert-row"><div><div className="alert-name">{l.name}</div><div className="alert-meta"><a className="tel-link" href={"tel:"+l.phone.replace(/\s/g,"")}><Ic n="phone" s={10}/>{l.phone}</a> · {a?"à "+a.time:""}</div></div><button className="btn btn-sm btn-g" onClick={()=>setPage("agenda")}>Agenda</button></div>);})}</div></div>)}
+                    <div className="sc-hd"><div className="sc-title">⚡ Alertes &amp; Actions</div></div>
+                    {la.urgent.length>0&&(<div className="alert-block red"><div className="alert-hd red"><span className="pulse">🔴</span>{la.urgent.length} lead{la.urgent.length>1?"s":""} sans action +24h</div><div className="alert-rows">{la.urgent.map(l=>(<div key={l.id} className="alert-row"><div><div className="alert-name">{l.name}</div><div className="alert-meta"><a className="tel-link" href={"tel:"+l.phone.replace(/\s/g,"")}><Ic n="phone" s={10}/>{l.phone}</a></div></div><button className="btn btn-sm" style={{background:"var(--red)",color:"#fff",fontSize:11}} onClick={()=>setPage("prospection")}>Traiter</button></div>))}</div></div>)}
+                    {la.relance3Due.length>0&&(<div className="alert-block orange"><div className="alert-hd orange">📞 {la.relance3Due.length} relance J+3 aujourd&apos;hui</div><div className="alert-rows">{la.relance3Due.map(l=>(<div key={l.id} className="alert-row"><div><div className="alert-name">{l.name}</div><div className="alert-meta"><a className="tel-link" href={"tel:"+l.phone.replace(/\s/g,"")}><Ic n="phone" s={10}/>{l.phone}</a></div></div><button className="btn btn-sm btn-g" onClick={()=>setPage("agenda")}>Agenda</button></div>))}</div></div>)}
                     {(la.relance3Late.length>0||la.relance7Late.length>0)&&(<div className="alert-block red"><div className="alert-hd red"><Ic n="clock" s={13}/>{la.relance3Late.length+la.relance7Late.length} relance{la.relance3Late.length+la.relance7Late.length>1?"s":""} en retard</div><div className="alert-rows">{[...la.relance3Late,...la.relance7Late].map(l=>(<div key={l.id} className="alert-row"><div><div className="alert-name">{l.name}</div><div className="alert-meta">{l.column==="relance1"?"J+3":"J+7"} · prévu le {fmtDate(l.relanceDate).full}</div></div><span className="alert-pill red">En retard</span></div>))}</div></div>)}
-                    {la.interestedDue.length>0&&(
-                      <div className="alert-block orange">
-                        <div className="alert-hd orange">🔥 {la.interestedDue.length} relance Chaud aujourd&apos;hui</div>
-                        <div className="alert-rows">
-                          {la.interestedDue.map(l=>{
-                            const a=appts.find(x=>x.id===l.relanceApptId);
-                            return(
-                              <div key={l.id} className="alert-row">
-                                <div>
-                                  <div className="alert-name">{l.name}</div>
-                                  <div className="alert-meta"><a className="tel-link" href={"tel:"+l.phone.replace(/\s/g,"")}><Ic n="phone" s={10}/>{l.phone}</a>{a?" · à "+a.time:""}</div>
-                                </div>
-                                <button className="btn btn-sm btn-g" onClick={()=>setPage("agenda")}>Agenda</button>
-                              </div>
-                            );
-                          })}
-                        </div>
-                      </div>
-                    )}
-                    {la.interestedLate.length>0&&(
-                      <div className="alert-block red">
-                        <div className="alert-hd red"><Ic n="clock" s={13}/>{la.interestedLate.length} relance Chaud en retard</div>
-                        <div className="alert-rows">
-                          {la.interestedLate.map(l=>(
-                            <div key={l.id} className="alert-row">
-                              <div>
-                                <div className="alert-name">{l.name}</div>
-                                <div className="alert-meta">🔥 Chaud · prévu le {fmtDate(l.relanceDate).full}</div>
-                              </div>
-                              <div style={{display:"flex",gap:7,alignItems:"center"}}>
-                                <span className="alert-pill red">En retard</span>
-                                <button className="btn btn-sm" style={{background:"var(--red)",color:"#fff",fontSize:11}} onClick={()=>setPage("prospection")}>Voir</button>
-                              </div>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-                    {ca.length>0&&(<div className="alert-block orange"><div className="alert-hd orange"><Ic n="alert" s={13}/>{ca.length} client{ca.length>1?"s":""} inactif{ca.length>1?"s":""} +7j</div><div className="alert-rows">{ca.map(c=>(<div key={c.id} className="alert-row"><div><div className="alert-name">{c.name}</div><div className="alert-meta">{PROD_COLS.find(x=>x.id===c.column)?.label}</div></div><div style={{display:"flex",gap:7,alignItems:"center"}}><span className="alert-pill orange">{Math.floor(daysSince(c.lastActivity))}j</span><button className="btn btn-sm btn-g" onClick={()=>{setSelectedClient({...c});setModal("fiche");}}>Fiche</button></div></div>))}</div></div>)}
-                    {totalAlerts===0&&newLeads===0&&(<div style={{textAlign:"center",padding:"22px 0"}}><div style={{fontSize:28,marginBottom:5}}>✅</div><div style={{fontWeight:700,color:"var(--green)",fontSize:14}}>Tout est à jour !</div></div>)}
+                    {ca.length>0&&(<div className="alert-block orange"><div className="alert-hd orange"><Ic n="alert" s={13}/>{ca.length} client{ca.length>1?"s":""} inactif{ca.length>1?"s":""} +7j</div><div className="alert-rows">{ca.map(c=>(<div key={c.id} className="alert-row"><div><div className="alert-name">{c.name}</div><div className="alert-meta">{PROD_COLS.find(x=>x.id===c.column)?.label}</div></div><button className="btn btn-sm btn-g" onClick={()=>{setSelectedClient({...c});setModal("fiche");}}>Fiche</button></div>))}</div></div>)}
+                    {totalAlerts===0&&(<div style={{textAlign:"center",padding:"22px 0"}}><div style={{fontSize:28,marginBottom:5}}>✅</div><div style={{fontWeight:700,color:"var(--green)",fontSize:14}}>Tout est à jour !</div></div>)}
                   </div>
                   <div className="sc">
                     <div className="sc-hd"><div className="sc-title">Pipeline production</div></div>
@@ -808,10 +629,7 @@ function App(){
             {page==="prospection"&&(
               <div className="fade-in">
                 <div className="ph-row">
-                  <div>
-                    <div className="pt">Prospection <span>&amp; Leads</span></div>
-                    <div className="ps">{filteredLeads.filter(l=>l.column!=="lost").length} leads actifs{search?" pour "+search:""}</div>
-                  </div>
+                  <div><div className="pt">Prospection <span>&amp; Leads</span></div><div className="ps">{filteredLeads.filter(l=>l.column!=="lost").length} leads actifs</div></div>
                   <div style={{display:"flex",gap:8}}>
                     <button className="btn-export" onClick={exportLeads}><Ic n="download" s={13}/>Export CSV</button>
                     <button className="btn btn-p" onClick={()=>{setLeadForm(blankLead);setModal("lead");}}><Ic n="plus" s={14}/>Nouveau lead</button>
@@ -828,14 +646,10 @@ function App(){
                         onDrop={e=>onDrop(e,col.id)}
                         style={{borderTop:`3px solid ${col.color}`}}>
                         <div className="kb-col-hd"><div className="kb-col-title" style={{color:col.color}}>{col.label}</div><span className="kb-count">{colLeads.length}</span></div>
-                        {(col.id==="relance1"||col.id==="relance2")&&(<div style={{fontSize:10,color:"var(--text3)",background:"var(--orange-bg)",borderRadius:6,padding:"3px 8px",marginBottom:8,fontWeight:500,textAlign:"center"}}>📅 +{col.id==="relance1"?"3":"7"}j ouvré auto</div>)}
                         {colLeads.map(lead=>{
                           const urg=leadUrgency(lead);
                           return(
-                            <div key={lead.id}
-                              className={`kb-card ${urg==="red"?"urgent":urg==="orange"?"warn":lead.relanceApptId?"relance-sched":""}`}
-                              draggable
-                              onDragStart={e=>onDragStart(e,lead.id,"lead")}>
+                            <div key={lead.id} className={`kb-card ${urg==="red"?"urgent":urg==="orange"?"warn":lead.relanceApptId?"relance-sched":""}`} draggable onDragStart={e=>onDragStart(e,lead.id,"lead")}>
                               <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start"}}>
                                 <div className="kb-card-name">{lead.name}</div>
                                 <button className="ib" style={{padding:2,marginTop:-2}} onClick={()=>{setSelectedLead(lead);setModal("leadHistory");}}><Ic n="history" s={12}/></button>
@@ -844,11 +658,10 @@ function App(){
                                 {lead.phone&&<span><a className="tel-link" href={"tel:"+lead.phone.replace(/\s/g,"")} onClick={e=>e.stopPropagation()}><Ic n="phone" s={10}/>{lead.phone}</a></span>}
                                 <span style={{marginTop:2}}><span style={{display:"inline-flex",background:(SOURCE_COLORS[lead.source]||"#888")+"22",color:SOURCE_COLORS[lead.source]||"#888",padding:"2px 7px",borderRadius:5,fontSize:10,fontWeight:700}}>{lead.source}</span></span>
                                 {lead.relanceDate&&(<span style={{marginTop:3}}><span style={{background:"var(--orange-bg)",color:"#92400e",borderRadius:20,padding:"2px 7px",fontSize:10,fontWeight:700}}>📅 {fmtDate(lead.relanceDate).full}</span></span>)}
-                                {urg&&!lead.relanceDate&&(<span style={{marginTop:3}}><span style={{background:urg==="red"?"var(--red-bg)":"var(--orange-bg)",color:urg==="red"?"var(--red)":"#92400e",borderRadius:20,padding:"2px 7px",fontSize:10,fontWeight:700}}>{urg==="red"?"🔴":"🟠"} +{Math.floor(hoursSince(lead.enteredAt))}h</span></span>)}
                               </div>
                               {lead.notes&&<div style={{fontSize:11,color:"var(--text3)",marginTop:5,fontStyle:"italic"}}>"{lead.notes}"</div>}
                               <div style={{display:"flex",gap:5,marginTop:7,alignItems:"center"}}>
-                                {col.id==="qualified"&&(<button className="btn btn-success btn-sm" style={{fontSize:11,padding:"3px 8px",whiteSpace:"nowrap"}} onClick={()=>convertLead(lead)}><Ic n="arrow" s={10}/>Convertir</button>)}
+                                {col.id==="qualified"&&(<button className="btn btn-success btn-sm" style={{fontSize:11,padding:"3px 8px"}} onClick={()=>convertLead(lead)}><Ic n="arrow" s={10}/>Convertir</button>)}
                                 <button className="ib del" style={{marginLeft:"auto"}} onClick={()=>deleteLead(lead)}><Ic n="trash" s={12}/></button>
                               </div>
                             </div>
@@ -866,13 +679,7 @@ function App(){
             {page==="production"&&(
               <div className="fade-in">
                 <div className="ph-row">
-                  <div>
-                    <div className="pt">Production <span>&amp; Clients</span></div>
-                    <div className="ps">
-                      {filteredClients.length} clients{search?" pour "+search:""}
-                      {ca.length>0 && (<span style={{color:"var(--red)",fontWeight:700}}> · {ca.length} inactif(s) +7j</span>)}
-                    </div>
-                  </div>
+                  <div><div className="pt">Production <span>&amp; Clients</span></div><div className="ps">{filteredClients.length} clients</div></div>
                   <div style={{display:"flex",gap:8,alignItems:"center"}}>
                     <button className="btn-export" onClick={exportClients}><Ic n="download" s={13}/>Export CSV</button>
                     <div className="vt"><button className={`vt-btn ${prodView==="kanban"?"active":""}`} onClick={()=>setProdView("kanban")}><Ic n="kanban" s={13}/>Kanban</button><button className={`vt-btn ${prodView==="list"?"active":""}`} onClick={()=>setProdView("list")}><Ic n="list" s={13}/>Liste</button></div>
@@ -884,30 +691,19 @@ function App(){
                     {PROD_COLS.map(col=>{
                       const cc=filteredClients.filter(c=>c.column===col.id);
                       return(
-                        <div key={col.id}
-                          className={`kb-col ${dragOver===col.id?"drag-over":""}`}
-                          onDragOver={e=>{e.preventDefault();setDragOver(col.id);}}
-                          onDragLeave={()=>setDragOver(null)}
-                          onDrop={e=>onDrop(e,col.id)}
-                          style={{borderTop:"3px solid "+col.color}}>
+                        <div key={col.id} className={`kb-col ${dragOver===col.id?"drag-over":""}`} onDragOver={e=>{e.preventDefault();setDragOver(col.id);}} onDragLeave={()=>setDragOver(null)} onDrop={e=>onDrop(e,col.id)} style={{borderTop:"3px solid "+col.color}}>
                           <div className="kb-col-hd"><div className="kb-col-title" style={{color:col.color}}>{col.label}</div><span className="kb-count">{cc.length}</span></div>
                           {cc.map(cl=>{
                             const inactive=daysSince(cl.lastActivity)>=7&&cl.column!=="lost";
-                            return(
-                              <div key={cl.id}
-                                className={`prod-card ${inactive?"inactive":""}`}
-                                draggable
-                                onDragStart={e=>onDragStart(e,cl.id,"client")}>
-                                <div style={{fontWeight:700,fontSize:13,color:"var(--text)",marginBottom:2}} onClick={()=>{setSelectedClient({...cl});setModal("fiche");}}>{cl.name}</div>
-                                {cl.phone&&<div style={{marginBottom:5}}><a className="tel-link" href={"tel:"+cl.phone.replace(/\s/g,"")} onClick={e=>e.stopPropagation()}><Ic n="phone" s={10}/>{cl.phone}</a></div>}
-                                <div style={{display:"flex",flexWrap:"wrap",gap:3,marginBottom:inactive?5:0}}>
-                                  {cl.criteria.type&&<span className="crit-chip">{cl.criteria.type}</span>}
-                                  {cl.criteria.budgetMax&&<span className="crit-chip">≤{cl.criteria.budgetMax}€</span>}
-                                  {cl.criteria.sectors&&<span className="crit-chip">{cl.criteria.sectors.split(",")[0].trim()}</span>}
-                                </div>
-                                {inactive&&<div style={{fontSize:10,color:"var(--red)",fontWeight:700}}>⚠ Inactif {Math.floor(daysSince(cl.lastActivity))}j</div>}
+                            return(<div key={cl.id} className={`prod-card ${inactive?"inactive":""}`} draggable onDragStart={e=>onDragStart(e,cl.id,"client")}>
+                              <div style={{fontWeight:700,fontSize:13,color:"var(--text)",marginBottom:2}} onClick={()=>{setSelectedClient({...cl});setModal("fiche");}}>{cl.name}</div>
+                              {cl.phone&&<div style={{marginBottom:5}}><a className="tel-link" href={"tel:"+cl.phone.replace(/\s/g,"")} onClick={e=>e.stopPropagation()}><Ic n="phone" s={10}/>{cl.phone}</a></div>}
+                              <div style={{display:"flex",flexWrap:"wrap",gap:3}}>
+                                {cl.criteria.type&&<span className="crit-chip">{cl.criteria.type}</span>}
+                                {cl.criteria.budgetMax&&<span className="crit-chip">≤{cl.criteria.budgetMax}€</span>}
                               </div>
-                            );
+                              {inactive&&<div style={{fontSize:10,color:"var(--red)",fontWeight:700,marginTop:4}}>⚠ Inactif {Math.floor(daysSince(cl.lastActivity))}j</div>}
+                            </div>);
                           })}
                           {cc.length===0&&<div className="kb-empty">Aucun client</div>}
                         </div>
@@ -918,31 +714,20 @@ function App(){
                 {prodView==="list"&&(
                   <div className="sc" style={{overflowX:"auto"}}>
                     <table className="list-table">
-                      <thead><tr><th>Nom</th><th>Statut</th><th>Type</th><th>Budget</th><th>Secteurs</th><th>Profil</th><th>Activité</th><th/></tr></thead>
+                      <thead><tr><th>Nom</th><th>Statut</th><th>Type</th><th>Budget</th><th>Secteurs</th><th>Activité</th><th/></tr></thead>
                       <tbody>
                         {filteredClients.map(cl=>{
                           const col=PROD_COLS.find(c=>c.id===cl.column);
                           const inactive=daysSince(cl.lastActivity)>=7;
-                          return(
-                            <tr key={cl.id} style={inactive?{background:"#FFF5F5"}:{}}>
-                              <td className="td-name">
-                                {cl.name}
-                                <div><a className="tel-link" href={"tel:"+cl.phone.replace(/\s/g,"")} style={{marginTop:3,display:"inline-flex"}}><Ic n="phone" s={10}/>{cl.phone}</a></div>
-                              </td>
-                              <td><span style={{display:"inline-flex",alignItems:"center",background:(col?.color||"#888")+"22",color:col?.color,padding:"2px 8px",borderRadius:20,fontSize:11,fontWeight:700}}><span className="col-dot" style={{background:col?.color}}/>{col?.label}</span></td>
-                              <td>{cl.criteria.type||"—"}</td>
-                              <td style={{fontWeight:700,color:"var(--accent)"}}>{cl.criteria.budgetMax?cl.criteria.budgetMax+" €":"—"}</td>
-                              <td style={{fontSize:12}}>{cl.criteria.sectors||"—"}</td>
-                              <td>{cl.criteria.profile||"—"}</td>
-                              <td><span style={{fontWeight:700,fontSize:12,color:inactive?"var(--red)":"var(--text3)"}}>{inactive?"⚠ ":""}{Math.floor(daysSince(cl.lastActivity))}j</span></td>
-                              <td>
-                                <div style={{display:"flex",gap:4}}>
-                                  <button className="ib" onClick={()=>{setSelectedClient({...cl});setModal("fiche");}}><Ic n="edit" s={13}/></button>
-                                  <button className="ib del" onClick={()=>deleteClient(cl.id)}><Ic n="trash" s={13}/></button>
-                                </div>
-                              </td>
-                            </tr>
-                          );
+                          return(<tr key={cl.id} style={inactive?{background:"#FFF5F5"}:{}}>
+                            <td className="td-name">{cl.name}<div><a className="tel-link" href={"tel:"+cl.phone.replace(/\s/g,"")}><Ic n="phone" s={10}/>{cl.phone}</a></div></td>
+                            <td><span style={{display:"inline-flex",alignItems:"center",background:(col?.color||"#888")+"22",color:col?.color,padding:"2px 8px",borderRadius:20,fontSize:11,fontWeight:700}}><span className="col-dot" style={{background:col?.color}}/>{col?.label}</span></td>
+                            <td>{cl.criteria.type||"—"}</td>
+                            <td style={{fontWeight:700,color:"var(--accent)"}}>{cl.criteria.budgetMax?cl.criteria.budgetMax+" €":"—"}</td>
+                            <td style={{fontSize:12}}>{cl.criteria.sectors||"—"}</td>
+                            <td><span style={{fontWeight:700,fontSize:12,color:inactive?"var(--red)":"var(--text3)"}}>{inactive?"⚠ ":""}{Math.floor(daysSince(cl.lastActivity))}j</span></td>
+                            <td><div style={{display:"flex",gap:4}}><button className="ib" onClick={()=>{setSelectedClient({...cl});setModal("fiche");}}><Ic n="edit" s={13}/></button><button className="ib del" onClick={()=>deleteClient(cl.id)}><Ic n="trash" s={13}/></button></div></td>
+                          </tr>);
                         })}
                       </tbody>
                     </table>
@@ -958,7 +743,7 @@ function App(){
                   <div><div className="pt">Agenda <span>&amp; Visites</span></div><div className="ps">{appts.length} entrées · {appts.filter(a=>a.isRelance).length} relance(s)</div></div>
                   <button className="btn btn-p" onClick={()=>{setApptForm(blankAppt);setModal("appt");}}><Ic n="plus" s={14}/>Nouveau RDV</button>
                 </div>
-                {!gcal&&<div className="info-banner"><Ic n="google" s={14}/>Connectez Google Calendar pour synchroniser sur Apple Calendar iPhone 🍎</div>}
+                {!gcal&&<div className="info-banner"><Ic n="google" s={14}/>Connectez Google Calendar pour synchroniser</div>}
                 {appts.filter(a=>a.isRelance).length>0&&(
                   <div style={{marginBottom:18}}>
                     <div style={{fontSize:11,fontWeight:700,color:"var(--orange)",letterSpacing:".06em",textTransform:"uppercase",marginBottom:9}}>📞 Relances programmées</div>
@@ -970,11 +755,9 @@ function App(){
                           <div style={{display:"flex",alignItems:"center",gap:7,marginBottom:3}}>
                             <div style={{fontWeight:700,fontSize:13,color:"var(--text)"}}>{appt.title}</div>
                             {isT&&<span style={{background:"var(--orange)",color:"#fff",borderRadius:20,padding:"2px 8px",fontSize:10,fontWeight:700}}>Aujourd&apos;hui !</span>}
-                            <span className="relance-badge">📞 {lead?.column==="relance1"?"J+3":"J+7"}</span>
-                            {appt.gcalId&&<span className="synced-badge"><Ic n="check" s={10}/>GCal</span>}
                           </div>
                           <div style={{display:"flex",gap:10,flexWrap:"wrap",color:"var(--text3)",fontSize:12}}>
-                            <span style={{display:"flex",alignItems:"center",gap:4}}><Ic n="clock" s={10}/>{appt.time} · 5 min</span>
+                            <span><Ic n="clock" s={10}/> {appt.time}</span>
                             {lead&&<a className="tel-link" href={"tel:"+lead.phone.replace(/\s/g,"")}><Ic n="phone" s={10}/>{lead.phone}</a>}
                           </div>
                         </div>
@@ -987,25 +770,24 @@ function App(){
                   </div>
                 )}
                 <div style={{fontSize:11,fontWeight:700,color:"var(--accent-d)",letterSpacing:".06em",textTransform:"uppercase",marginBottom:9}}>📅 Rendez-vous clients</div>
-                {appts.filter(a=>!a.isRelance).length===0&&<div style={{textAlign:"center",padding:"28px",color:"var(--text3)"}}>Aucun RDV — cliquez sur "Nouveau RDV"</div>}
+                {appts.filter(a=>!a.isRelance).length===0&&<div style={{textAlign:"center",padding:"28px",color:"var(--text3)"}}>Aucun RDV</div>}
                 {appts.filter(a=>!a.isRelance).sort((a,b)=>a.date.localeCompare(b.date)).map(appt=>{
                   const d=fmtDate(appt.date);const cl=clients.find(c=>c.id===appt.clientId);const isT=isToday(appt.date);
                   return(<div key={appt.id} className={`appt-card ${appt.gcalId?"synced":""} ${isT?"today-card":""}`}>
                     <div className="adb"><div className="aday">{d.day}</div><div className="amo">{d.month}</div></div>
                     <div style={{flex:1}}>
                       <div style={{display:"flex",alignItems:"center",gap:7,marginBottom:3}}>
-                        <div style={{fontWeight:700,fontSize:13,color:"var(--text)"}}>{appt.title}</div>
+                        <div style={{fontWeight:700,fontSize:13}}>{appt.title}</div>
                         {isT&&<span style={{background:"var(--accent)",color:"#fff",borderRadius:20,padding:"2px 8px",fontSize:10,fontWeight:700}}>Aujourd&apos;hui</span>}
                         {appt.gcalId&&<span className="synced-badge"><Ic n="check" s={10}/>Synced</span>}
                       </div>
                       <div style={{display:"flex",flexWrap:"wrap",gap:10,color:"var(--text3)",fontSize:12}}>
-                        <span style={{display:"flex",alignItems:"center",gap:4}}><Ic n="clock" s={10}/>{appt.time} · {appt.duration} min</span>
-                        {cl&&<span style={{display:"flex",alignItems:"center",gap:4}}><Ic n="user" s={10}/>{cl.name}</span>}
-                        {appt.location&&<span style={{display:"flex",alignItems:"center",gap:4}}><Ic n="pin" s={10}/>{appt.location}</span>}
+                        <span><Ic n="clock" s={10}/> {appt.time} · {appt.duration} min</span>
+                        {cl&&<span><Ic n="user" s={10}/> {cl.name}</span>}
+                        {appt.location&&<span><Ic n="pin" s={10}/> {appt.location}</span>}
                       </div>
-                      {appt.notes&&<div style={{marginTop:4,fontSize:11,color:"var(--text3)"}}>{appt.notes}</div>}
                     </div>
-                    <div style={{display:"flex",gap:5,alignItems:"center"}}>
+                    <div style={{display:"flex",gap:5}}>
                       {!appt.gcalId&&gcal&&<button className="btn btn-g btn-sm" onClick={()=>pushGcal(appt)}><Ic n="google" s={11}/>Sync</button>}
                       <button className="ib del" onClick={()=>deleteAppt(appt)}><Ic n="trash" s={13}/></button>
                     </div>
@@ -1014,62 +796,139 @@ function App(){
               </div>
             )}
 
+            {/* ════ PLAN D'ACTION ════ */}
+            {page==="planaction"&&(
+              <div className="fade-in">
+                <div className="ph-row">
+                  <div>
+                    <div className="pt">Plan d&apos;action <span>Lancement</span></div>
+                    <div className="ps">Mars – Avril 2026 · {planDone}/{planTotal} tâches complétées</div>
+                  </div>
+                  <div style={{display:"flex",alignItems:"center",gap:8,background:"var(--surface)",border:"1px solid var(--border)",borderRadius:10,padding:"8px 16px"}}>
+                    <div style={{width:100,height:6,background:"var(--border2)",borderRadius:4,overflow:"hidden"}}>
+                      <div style={{height:"100%",background:"var(--accent)",borderRadius:4,width:planPct+"%",transition:"width .4s"}}/>
+                    </div>
+                    <span style={{fontSize:13,fontWeight:700,color:"var(--accent)"}}>{planPct}%</span>
+                  </div>
+                </div>
+
+                <div style={{display:"grid",gridTemplateColumns:"repeat(4,minmax(0,1fr))",gap:14}}>
+                  {PLANNING_WEEKS.map(week=>{
+                    const wd=week.tasks.filter(t=>(planTasks[t.id]||{}).status==="done").length;
+                    const wt=week.tasks.length;
+                    const pct=wt?Math.round(wd/wt*100):0;
+                    return(
+                      <div key={week.num} style={{background:"var(--surface)",borderRadius:16,border:"1px solid var(--border)",overflow:"hidden",boxShadow:"var(--sh)"}}>
+                        <div style={{padding:"14px 16px 12px",borderBottom:"1px solid var(--border)"}}>
+                          <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:8}}>
+                            <span style={{fontSize:10,fontWeight:700,letterSpacing:"1.5px",textTransform:"uppercase",padding:"3px 9px",borderRadius:20,background:week.colorLight,color:week.colorText}}>{week.num} — {week.label}</span>
+                            <span style={{fontSize:11,fontWeight:700,color:"var(--text3)"}}>{pct}%</span>
+                          </div>
+                          <div style={{fontSize:11,color:"var(--text3)",marginBottom:8}}>{week.dates}</div>
+                          <div style={{height:3,background:"var(--border2)",borderRadius:2,overflow:"hidden"}}>
+                            <div style={{height:"100%",background:week.color,borderRadius:2,width:pct+"%",transition:"width .4s"}}/>
+                          </div>
+                        </div>
+                        <div style={{padding:"6px 0"}}>
+                          {week.tasks.map(task=>{
+                            const ts2=planTasks[task.id]||{};
+                            const isDone=ts2.status==="done";
+                            return(
+                              <div key={task.id}
+                                onClick={()=>setPlanPanel({task,week})}
+                                style={{padding:"9px 14px",display:"flex",alignItems:"flex-start",gap:9,cursor:"pointer",borderBottom:"1px solid var(--surface2)",transition:"background .12s"}}
+                                onMouseEnter={e=>e.currentTarget.style.background="var(--surface2)"}
+                                onMouseLeave={e=>e.currentTarget.style.background="transparent"}>
+                                <div
+                                  onClick={e=>{
+                                    e.stopPropagation();
+                                    const newStatus=isDone?"todo":"done";
+                                    setPlanTasks(p=>({...p,[task.id]:{...(p[task.id]||{}),status:newStatus,updatedAt:new Date().toISOString()}}));
+                                    addToast(newStatus==="done"?"✓ Tâche complétée !":"↩ Tâche réouverte","success");
+                                  }}
+                                  style={{width:16,height:16,borderRadius:4,border:"1.5px solid "+(isDone?"var(--green)":"var(--border2)"),background:isDone?"var(--green)":"transparent",flexShrink:0,marginTop:2,display:"flex",alignItems:"center",justifyContent:"center",cursor:"pointer",transition:"all .18s"}}>
+                                  {isDone&&<svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3"><polyline points="20 6 9 17 4 12"/></svg>}
+                                </div>
+                                <div style={{flex:1,minWidth:0}}>
+                                  <div style={{fontSize:12,fontWeight:500,color:isDone?"var(--text3)":"var(--text)",textDecoration:isDone?"line-through":"none",lineHeight:1.4}}>
+                                    {task.name}
+                                    {task.isNew&&<span style={{display:"inline-block",fontSize:9,padding:"1px 5px",borderRadius:8,background:"#DBEAFE",color:"#1D4ED8",marginLeft:5,fontWeight:600,verticalAlign:"middle"}}>nouveau</span>}
+                                  </div>
+                                  <div style={{fontSize:11,color:"var(--text3)",marginTop:1,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{task.preview}</div>
+                                </div>
+                                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--border2)" strokeWidth="2.5"><polyline points="9 6 15 12 9 18"/></svg>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+
+                {/* PANEL DETAIL */}
+                {planPanel&&(
+                  <div style={{position:"fixed",inset:0,background:"rgba(17,24,39,.45)",zIndex:100,backdropFilter:"blur(5px)",display:"flex",alignItems:"stretch",justifyContent:"flex-end"}} onClick={e=>e.target===e.currentTarget&&setPlanPanel(null)}>
+                    <div style={{width:440,maxWidth:"100vw",background:"var(--surface)",display:"flex",flexDirection:"column",overflow:"hidden",borderLeft:"1px solid var(--border)",animation:"slideRight .3s ease"}}>
+                      <div style={{padding:"20px 22px 16px",borderBottom:"1px solid var(--border)",background:"var(--surface2)",flexShrink:0,position:"relative"}}>
+                        <button className="ib" style={{position:"absolute",top:16,right:16}} onClick={()=>setPlanPanel(null)}><Ic n="x" s={16}/></button>
+                        <span style={{fontSize:10,fontWeight:700,letterSpacing:"1px",textTransform:"uppercase",padding:"3px 9px",borderRadius:20,background:planPanel.week.colorLight,color:planPanel.week.colorText,display:"inline-block",marginBottom:10}}>{planPanel.week.num} — {planPanel.week.label}</span>
+                        <div style={{fontWeight:800,fontSize:18,color:"var(--text)",lineHeight:1.3,marginBottom:14,paddingRight:30}}>{planPanel.task.name}</div>
+                        <div style={{display:"flex",alignItems:"center",gap:8,flexWrap:"wrap"}}>
+                          {["todo","done"].map(s=>{
+                            const cur=(planTasks[planPanel.task.id]||{}).status||"todo";
+                            const active=cur===s;
+                            const labels={todo:"En cours",done:"Terminé ✓"};
+                            return(<button key={s} onClick={()=>{setPlanTasks(p=>({...p,[planPanel.task.id]:{...(p[planPanel.task.id]||{}),status:s,updatedAt:new Date().toISOString()}}));addToast(s==="done"?"✓ Tâche complétée !":"↩ Tâche réouverte","success");}} style={{padding:"6px 14px",borderRadius:20,fontSize:12,fontWeight:600,border:"1.5px solid "+(active?(s==="done"?"var(--green)":"var(--orange)"):"var(--border2)"),background:active?(s==="done"?"var(--green-bg)":"var(--orange-bg)"):"var(--surface)",color:active?(s==="done"?"var(--green)":"#92400e"):"var(--text3)",cursor:"pointer",fontFamily:"inherit"}}>{labels[s]}</button>);
+                          })}
+                          {(()=>{const pts=planPanel.task.points;const chk=pts.filter((_,i)=>!!((planTasks[planPanel.task.id]||{}).points||{})[i]).length;const pct=pts.length?Math.round(chk/pts.length*100):0;return(<div style={{display:"flex",alignItems:"center",gap:7,marginLeft:4}}><div style={{width:70,height:5,background:"var(--border2)",borderRadius:3,overflow:"hidden"}}><div style={{height:"100%",background:pct===100?"var(--green)":"var(--accent)",borderRadius:3,width:pct+"%",transition:"width .3s"}}/></div><span style={{fontSize:11,fontWeight:700,color:pct===100?"var(--green)":"var(--text3)"}}>{chk}/{pts.length}</span></div>);})()}
+                        </div>
+                        {(planTasks[planPanel.task.id]||{}).updatedAt&&<div style={{fontSize:11,color:"var(--text3)",marginTop:8,fontStyle:"italic"}}>Mis à jour le {new Date((planTasks[planPanel.task.id]||{}).updatedAt).toLocaleDateString("fr-FR")}</div>}
+                      </div>
+                      <div style={{flex:1,overflowY:"auto",padding:"18px 22px"}}>
+                        <div style={{fontSize:10,fontWeight:700,letterSpacing:"1.5px",textTransform:"uppercase",color:"var(--text3)",marginBottom:10}}>Description</div>
+                        <div style={{fontSize:14,color:"var(--text2)",lineHeight:1.75,marginBottom:22}}>{planPanel.task.desc}</div>
+                        <div style={{fontSize:10,fontWeight:700,letterSpacing:"1.5px",textTransform:"uppercase",color:"var(--text3)",marginBottom:10}}>Points clés</div>
+                        <ul style={{listStyle:"none",marginBottom:22}}>
+                          {planPanel.task.points.map((pt,i)=>{
+                            const chkd=!!((planTasks[planPanel.task.id]||{}).points||{})[i];
+                            return(<li key={i} onClick={()=>{const cur=planTasks[planPanel.task.id]||{};const pts2={...(cur.points||{}),[i]:!chkd};const allDone=planPanel.task.points.every((_,idx2)=>!!pts2[idx2]);const ns={...cur,points:pts2,updatedAt:new Date().toISOString()};if(allDone&&cur.status!=="done"){ns.status="done";addToast("✓ Tous les points cochés — tâche terminée !","success");}setPlanTasks(p=>({...p,[planPanel.task.id]:ns}));}} style={{display:"flex",alignItems:"flex-start",gap:10,padding:"9px 0",borderBottom:"1px solid var(--border)",fontSize:13,color:chkd?"var(--text3)":"var(--text2)",lineHeight:1.5,cursor:"pointer",textDecoration:chkd?"line-through":"none",transition:"all .15s"}}>
+                              <div style={{width:16,height:16,borderRadius:4,border:"1.5px solid "+(chkd?"var(--green)":"var(--border2)"),background:chkd?"var(--green)":"transparent",flexShrink:0,marginTop:1,display:"flex",alignItems:"center",justifyContent:"center",transition:"all .18s"}}>
+                                {chkd&&<svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3"><polyline points="20 6 9 17 4 12"/></svg>}
+                              </div>
+                              {pt}
+                            </li>);
+                          })}
+                        </ul>
+                        <div style={{fontSize:10,fontWeight:700,letterSpacing:"1.5px",textTransform:"uppercase",color:"var(--text3)",marginBottom:10}}>Notes</div>
+                        <PlanNoteEditor taskId={planPanel.task.id} planTasks={planTasks} setPlanTasks={setPlanTasks} addToast={addToast}/>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+
             {/* ════ STATS ════ */}
             {page==="stats"&&(
               <div className="fade-in">
-                <div className="ph">
-                  <div className="pt">Statistiques <span>&amp; Conversion</span></div>
-                  <div className="ps">Analyse de votre activité et performance par source</div>
-                </div>
+                <div className="ph"><div className="pt">Statistiques <span>&amp; Conversion</span></div></div>
                 <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:16,marginBottom:16}}>
-                  {/* Conversion par source */}
                   <div className="sc">
                     <div className="sc-hd"><div className="sc-title">📊 Taux de qualification par source</div></div>
                     {convStats.length===0&&<div style={{color:"var(--text3)",fontSize:13,textAlign:"center",padding:"20px 0"}}>Pas encore assez de données</div>}
-                    {convStats.map(s=>(
-                      <div key={s.src} className="stat-bar-wrap">
-                        <div className="stat-bar-label">
-                          <span style={{display:"flex",alignItems:"center",gap:6}}><span style={{width:8,height:8,borderRadius:"50%",background:SOURCE_COLORS[s.src]||"#888",display:"inline-block"}}/>{s.src}</span>
-                          <span style={{color:s.rate>=50?"var(--green)":s.rate>=25?"var(--orange)":"var(--red)",fontWeight:700}}>{s.rate}% <span style={{color:"var(--text3)",fontWeight:500}}>({s.qualified}/{s.total})</span></span>
-                        </div>
-                        <div className="stat-bar-track"><div className="stat-bar-fill" style={{width:`${s.rate}%`,background:s.rate>=50?"var(--green)":s.rate>=25?"var(--orange)":"var(--red)"}}/></div>
-                      </div>
-                    ))}
-                    <div style={{marginTop:14,padding:"10px 14px",background:"var(--surface2)",borderRadius:9,border:"1px solid var(--border)"}}>
-                      <div style={{fontSize:11,fontWeight:700,color:"var(--text3)",marginBottom:6,textTransform:"uppercase",letterSpacing:".06em"}}>Meilleure source</div>
-                      {convStats.length>0&&(()=>{const best=convStats.sort((a,b)=>b.rate-a.rate)[0];return(<div style={{fontSize:14,fontWeight:700,color:"var(--text)"}}>{best.src} <span style={{color:"var(--green)"}}>→ {best.rate}%</span></div>);})()}
-                    </div>
+                    {convStats.map(s=>(<div key={s.src} className="stat-bar-wrap">
+                      <div className="stat-bar-label"><span>{s.src}</span><span style={{color:s.rate>=50?"var(--green)":s.rate>=25?"var(--orange)":"var(--red)",fontWeight:700}}>{s.rate}% ({s.qualified}/{s.total})</span></div>
+                      <div className="stat-bar-track"><div className="stat-bar-fill" style={{width:`${s.rate}%`,background:s.rate>=50?"var(--green)":s.rate>=25?"var(--orange)":"var(--red)"}}/></div>
+                    </div>))}
                   </div>
-
-                  {/* Pipeline snapshot */}
                   <div className="sc">
                     <div className="sc-hd"><div className="sc-title">🏠 Pipeline production</div></div>
-                    {PROD_COLS.map(col=>{
-                      const count=clients.filter(c=>c.column===col.id).length;
-                      const total=clients.length||1;
-                      return(<div key={col.id} className="stat-bar-wrap">
-                        <div className="stat-bar-label"><span style={{display:"flex",alignItems:"center",gap:6}}><span className="col-dot" style={{background:col.color}}/>{col.label}</span><span style={{fontWeight:700,color:"var(--text)"}}>{count}</span></div>
-                        <div className="stat-bar-track"><div className="stat-bar-fill" style={{width:`${(count/total)*100}%`,background:col.color}}/></div>
-                      </div>);
-                    })}
+                    {PROD_COLS.map(col=>{const count=clients.filter(c=>c.column===col.id).length;const total=clients.length||1;return(<div key={col.id} className="stat-bar-wrap"><div className="stat-bar-label"><span style={{display:"flex",alignItems:"center",gap:6}}><span className="col-dot" style={{background:col.color}}/>{col.label}</span><span style={{fontWeight:700}}>{count}</span></div><div className="stat-bar-track"><div className="stat-bar-fill" style={{width:`${(count/total)*100}%`,background:col.color}}/></div></div>);})}
                   </div>
                 </div>
-
-                {/* Résumé activité */}
                 <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:14}}>
-                  {[
-                    {label:"Total leads",val:leads.length,sub:"tous statuts",color:"var(--purple)"},
-                    {label:"Leads actifs",val:leads.filter(l=>!["lost"].includes(l.column)).length,sub:"hors perdus",color:"var(--accent)"},
-                    {label:"Total clients",val:clients.length,sub:"en suivi",color:"var(--green)"},
-                    {label:"Taux conversion global",val:clients.length+leads.filter(l=>l.column==="lost").length>0?Math.round((clients.length/(clients.length+leads.length))*100)+"%":"—",sub:"leads → clients",color:"var(--orange)"},
-                  ].map(s=>(
-                    <div key={s.label} className="kpi">
-                      <div className="kpi-ic" style={{background:s.color+"22",color:s.color,marginBottom:8}}><Ic n="chart" s={16}/></div>
-                      <div className="kpi-lbl">{s.label}</div>
-                      <div className="kpi-val" style={{fontSize:22}}>{s.val}</div>
-                      <div className="kpi-sub">{s.sub}</div>
-                    </div>
-                  ))}
+                  {[{label:"Total leads",val:leads.length,color:"var(--purple)"},{label:"Leads actifs",val:leads.filter(l=>!["lost"].includes(l.column)).length,color:"var(--accent)"},{label:"Total clients",val:clients.length,color:"var(--green)"},{label:"Conversion globale",val:clients.length+leads.length>0?Math.round((clients.length/(clients.length+leads.length))*100)+"%":"—",color:"var(--orange)"}].map(s=>(<div key={s.label} className="kpi"><div className="kpi-ic" style={{background:s.color+"22",color:s.color}}><Ic n="chart" s={16}/></div><div className="kpi-lbl">{s.label}</div><div className="kpi-val" style={{fontSize:22}}>{s.val}</div></div>))}
                 </div>
               </div>
             )}
@@ -1079,277 +938,150 @@ function App(){
       </div>
 
       {/* MODAL LEAD */}
-      {modal==="lead" && (
-        <div className="overlay" onClick={e=>e.target===e.currentTarget&&(setModal(null),setLeadError(""))}>
-          <div className="modal fade-in">
-            <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:18}}>
-              <div className="modal-title" style={{marginBottom:0}}>Nouveau lead</div>
-              <button className="ib" onClick={()=>{setModal(null);setLeadError("");}}><Ic n="x" s={18}/></button>
-            </div>
-            <div className="fr">
-              <div className="fg">
-                <label className="fl">Prénom</label>
-                <input className="fi" value={leadForm.firstName} onChange={e=>{setLeadForm(p=>({...p,firstName:e.target.value}));setLeadError("");}} placeholder="Marie"/>
-              </div>
-              <div className="fg">
-                <label className="fl">Nom</label>
-                <input className="fi" value={leadForm.lastName} onChange={e=>{setLeadForm(p=>({...p,lastName:e.target.value}));setLeadError("");}} placeholder="Dupont"/>
-              </div>
-            </div>
-            <div className="fr">
-              <div className="fg">
-                <label className="fl">Téléphone</label>
-                <input className="fi" value={leadForm.phone} onChange={e=>{setLeadForm(p=>({...p,phone:e.target.value}));setLeadError("");}} placeholder="06 12 34 56 78"/>
-              </div>
-              <div className="fg">
-                <label className="fl">Email</label>
-                <input className="fi" type="email" value={leadForm.email} onChange={e=>{setLeadForm(p=>({...p,email:e.target.value}));setLeadError("");}} placeholder="marie@email.fr"/>
-              </div>
-            </div>
-            <div className="fg">
-              <label className="fl">Source</label>
-              <select className="fi" value={leadForm.source} onChange={e=>setLeadForm(p=>({...p,source:e.target.value}))}>
-                {ALL_SOURCES.map(s=><option key={s}>{s}</option>)}
-              </select>
-            </div>
-            <div className="fg">
-              <label className="fl">Remarques</label>
-              <textarea className="fi" rows={2} value={leadForm.notes} onChange={e=>setLeadForm(p=>({...p,notes:e.target.value}))} placeholder="Première impression, contexte..."/>
-            </div>
-            {leadError && (
-              <div style={{background:"var(--red-bg)",border:"1.5px solid #FECACA",borderRadius:9,padding:"9px 13px",fontSize:12,fontWeight:600,color:"var(--red)",marginBottom:4}}>
-                ⚠ {leadError}
-              </div>
-            )}
-            <div style={{fontSize:11,color:"var(--text3)",marginBottom:8}}>* Au moins un prénom/nom et un téléphone/email requis</div>
-            <div className="fa">
-              <button className="btn btn-g" onClick={()=>{setModal(null);setLeadError("");}}>Annuler</button>
-              <button className="btn btn-p" onClick={saveLead}><Ic n="check" s={13}/>Ajouter</button>
-            </div>
+      {modal==="lead"&&(<div className="overlay" onClick={e=>e.target===e.currentTarget&&(setModal(null),setLeadError(""))}>
+        <div className="modal fade-in">
+          <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:18}}><div className="modal-title" style={{marginBottom:0}}>Nouveau lead</div><button className="ib" onClick={()=>{setModal(null);setLeadError("");}}><Ic n="x" s={18}/></button></div>
+          <div className="fr">
+            <div className="fg"><label className="fl">Prénom</label><input className="fi" value={leadForm.firstName} onChange={e=>{setLeadForm(p=>({...p,firstName:e.target.value}));setLeadError("");}} placeholder="Marie"/></div>
+            <div className="fg"><label className="fl">Nom</label><input className="fi" value={leadForm.lastName} onChange={e=>{setLeadForm(p=>({...p,lastName:e.target.value}));setLeadError("");}} placeholder="Dupont"/></div>
           </div>
+          <div className="fr">
+            <div className="fg"><label className="fl">Téléphone</label><input className="fi" value={leadForm.phone} onChange={e=>{setLeadForm(p=>({...p,phone:e.target.value}));setLeadError("");}} placeholder="06 12 34 56 78"/></div>
+            <div className="fg"><label className="fl">Email</label><input className="fi" type="email" value={leadForm.email} onChange={e=>{setLeadForm(p=>({...p,email:e.target.value}));setLeadError("");}} placeholder="marie@email.fr"/></div>
+          </div>
+          <div className="fg"><label className="fl">Source</label><select className="fi" value={leadForm.source} onChange={e=>setLeadForm(p=>({...p,source:e.target.value}))}>{ALL_SOURCES.map(s=><option key={s}>{s}</option>)}</select></div>
+          <div className="fg"><label className="fl">Remarques</label><textarea className="fi" rows={2} value={leadForm.notes} onChange={e=>setLeadForm(p=>({...p,notes:e.target.value}))} placeholder="Première impression..."/></div>
+          {leadError&&<div style={{background:"var(--red-bg)",border:"1.5px solid #FECACA",borderRadius:9,padding:"9px 13px",fontSize:12,fontWeight:600,color:"var(--red)",marginBottom:4}}>⚠ {leadError}</div>}
+          <div className="fa"><button className="btn btn-g" onClick={()=>{setModal(null);setLeadError("");}}>Annuler</button><button className="btn btn-p" onClick={saveLead}><Ic n="check" s={13}/>Ajouter</button></div>
         </div>
-      )}
+      </div>)}
 
       {/* MODAL HISTORIQUE LEAD */}
-      {modal==="leadHistory"&&selectedLead&&(
-        <div className="overlay" onClick={e=>e.target===e.currentTarget&&setModal(null)}>
-          <div className="modal fade-in">
-            <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:18}}>
-              <div>
-                <div className="modal-title" style={{marginBottom:2}}>Historique — {selectedLead.name}</div>
-                <a className="tel-link" href={"tel:"+selectedLead.phone.replace(/\s/g,"")}><Ic n="phone" s={11}/>{selectedLead.phone}</a>
-              </div>
-              <button className="ib" onClick={()=>setModal(null)}><Ic n="x" s={18}/></button>
-            </div>
-            <div style={{marginBottom:16}}>
-              {(selectedLead.history||[]).length===0&&<div style={{textAlign:"center",color:"var(--text3)",padding:"20px 0"}}>Aucun historique</div>}
-              {[...(selectedLead.history||[])].reverse().map(ev=>(
-                <div key={ev.id} className="hist-item">
-                  <div className="hist-dot"/>
-                  <div><div className="hist-text">{ev.text}</div><div className="hist-date">{fmtDDMMYYYY(ev.at)} à {new Date(ev.at).toLocaleTimeString("fr-FR",{hour:"2-digit",minute:"2-digit"})}</div></div>
-                </div>
-              ))}
-            </div>
-            <div style={{background:"var(--surface2)",borderRadius:10,padding:"12px",border:"1px solid var(--border)"}}>
-              <div style={{fontSize:11,fontWeight:700,color:"var(--text3)",marginBottom:8,textTransform:"uppercase",letterSpacing:".06em"}}>Ajouter une note manuelle</div>
-              <ManualNoteForm lead={selectedLead} onSave={(note)=>{const ev=mkEvent("📝",note);setLeads(p=>p.map(l=>l.id===selectedLead.id?{...l,history:[...(l.history||[]),ev]}:l));setSelectedLead(p=>({...p,history:[...(p.history||[]),ev]}));addToast("Note ajoutée","success");}}/>
-            </div>
+      {modal==="leadHistory"&&selectedLead&&(<div className="overlay" onClick={e=>e.target===e.currentTarget&&setModal(null)}>
+        <div className="modal fade-in">
+          <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:18}}><div><div className="modal-title" style={{marginBottom:2}}>Historique — {selectedLead.name}</div><a className="tel-link" href={"tel:"+selectedLead.phone.replace(/\s/g,"")}><Ic n="phone" s={11}/>{selectedLead.phone}</a></div><button className="ib" onClick={()=>setModal(null)}><Ic n="x" s={18}/></button></div>
+          <div style={{marginBottom:16}}>
+            {(selectedLead.history||[]).length===0&&<div style={{textAlign:"center",color:"var(--text3)",padding:"20px 0"}}>Aucun historique</div>}
+            {[...(selectedLead.history||[])].reverse().map(ev=>(<div key={ev.id} className="hist-item"><div className="hist-dot"/><div><div className="hist-text">{ev.text}</div><div className="hist-date">{fmtDDMMYYYY(ev.at)}</div></div></div>))}
+          </div>
+          <div style={{background:"var(--surface2)",borderRadius:10,padding:"12px",border:"1px solid var(--border)"}}>
+            <div style={{fontSize:11,fontWeight:700,color:"var(--text3)",marginBottom:8,textTransform:"uppercase",letterSpacing:".06em"}}>Ajouter une note</div>
+            <ManualNoteForm lead={selectedLead} onSave={(note)=>{const ev=mkEvent("📝",note);setLeads(p=>p.map(l=>l.id===selectedLead.id?{...l,history:[...(l.history||[]),ev]}:l));setSelectedLead(p=>({...p,history:[...(p.history||[]),ev]}));addToast("Note ajoutée","success");}}/>
           </div>
         </div>
-      )}
+      </div>)}
 
       {/* MODAL QUALIFICATION */}
-      {modal==="qualify" && selectedLead && (
-        <div className="overlay" onClick={e=>e.target===e.currentTarget&&setModal(null)}>
-          <div className="modal wide fade-in">
-            <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:4}}>
-              <div>
-                <div className="modal-title" style={{marginBottom:2}}>Fiche de qualification</div>
-                <div style={{fontSize:12,color:"var(--text3)"}}>Conversion de {selectedLead.name} en client</div>
-              </div>
-              <button className="ib" onClick={()=>setModal(null)}><Ic n="x" s={18}/></button>
-            </div>
-
-            <div className="modal-section">Coordonnées</div>
-            <div className="fr">
-              <div className="fg"><label className="fl">Nom complet</label><input className="fi" value={qualifyForm.name} onChange={e=>setQualifyForm(p=>({...p,name:e.target.value}))} placeholder="Prénom Nom"/></div>
-              <div className="fg">
-                <label className="fl">Téléphone</label>
-                <div style={{display:"flex",gap:8,alignItems:"center"}}>
-                  <input className="fi" value={qualifyForm.phone} onChange={e=>setQualifyForm(p=>({...p,phone:e.target.value}))}/>
-                  {qualifyForm.phone && <a className="tel-link" href={"tel:"+qualifyForm.phone.replace(/\s/g,"")} style={{flexShrink:0}}><Ic n="phone" s={12}/>Appeler</a>}
-                </div>
-              </div>
-            </div>
-            <div className="fr">
-              <div className="fg"><label className="fl">Email</label><input className="fi" type="email" value={qualifyForm.email} onChange={e=>setQualifyForm(p=>({...p,email:e.target.value}))}/></div>
-            </div>
-
-            <div className="modal-section">Critères de recherche</div>
-            <div className="fr">
-              <div className="fg"><label className="fl">Type de bien</label><input className="fi" value={qualifyForm.criteria.type} onChange={e=>setQualifyForm(p=>({...p,criteria:{...p.criteria,type:e.target.value}}))} placeholder="T2, T3..."/></div>
-              <div className="fg"><label className="fl">Budget max (€/mois)</label><input className="fi" value={qualifyForm.criteria.budgetMax} onChange={e=>setQualifyForm(p=>({...p,criteria:{...p.criteria,budgetMax:e.target.value}}))} placeholder="1100"/></div>
-            </div>
-            <div className="fr">
-              <div className="fg"><label className="fl">Secteurs souhaités</label><input className="fi" value={qualifyForm.criteria.sectors} onChange={e=>setQualifyForm(p=>({...p,criteria:{...p.criteria,sectors:e.target.value}}))} placeholder="Lyon 6e, Lyon 3e..."/></div>
-              <div className="fg"><label className="fl">Surface min (m²)</label><input className="fi" value={qualifyForm.criteria.surfaceMin} onChange={e=>setQualifyForm(p=>({...p,criteria:{...p.criteria,surfaceMin:e.target.value}}))} placeholder="40"/></div>
-            </div>
-            <div className="fr">
-              <div className="fg"><label className="fl">Date emménagement souhaitée</label><input className="fi" type="date" value={qualifyForm.criteria.moveDate} onChange={e=>setQualifyForm(p=>({...p,criteria:{...p.criteria,moveDate:e.target.value}}))}/></div>
-              <div className="fg"><label className="fl">Critères spécifiques</label><input className="fi" value={qualifyForm.criteria.specific} onChange={e=>setQualifyForm(p=>({...p,criteria:{...p.criteria,specific:e.target.value}}))} placeholder="Parking, animaux, calme..."/></div>
-            </div>
-
-            <div className="modal-section">Dossier</div>
-            <div className="fr">
-              <div className="fg">
-                <label className="fl">Profil</label>
-                <select className="fi" value={qualifyForm.criteria.profile} onChange={e=>setQualifyForm(p=>({...p,criteria:{...p.criteria,profile:e.target.value}}))}>
-                  <option value="">—</option>
-                  {["Salarié CDI","Salarié CDD","Indépendant","Étudiant","Retraité","Autre"].map(v=><option key={v}>{v}</option>)}
-                </select>
-              </div>
-              <div className="fg"><label className="fl">Revenus nets / mois</label><input className="fi" value={qualifyForm.criteria.revenues} onChange={e=>setQualifyForm(p=>({...p,criteria:{...p.criteria,revenues:e.target.value}}))} placeholder="2 500 €"/></div>
-            </div>
-            <div className="fr">
-              <div className="fg">
-                <label className="fl">Garant</label>
-                <select className="fi" value={qualifyForm.criteria.guarantor} onChange={e=>setQualifyForm(p=>({...p,criteria:{...p.criteria,guarantor:e.target.value}}))}>
-                  <option value="">—</option>
-                  {["Oui (parents)","Oui (organisme)","Non","Visale"].map(v=><option key={v}>{v}</option>)}
-                </select>
-              </div>
-            </div>
-
-            <div className="modal-section">Notes</div>
-            <div className="fg"><textarea className="fi" rows={3} value={qualifyForm.notes} onChange={e=>setQualifyForm(p=>({...p,notes:e.target.value}))} placeholder="Contexte, historique, observations..."/></div>
-
-            <div className="fa">
-              <button className="btn btn-g" onClick={()=>setModal(null)}>Annuler</button>
-              <button className="btn btn-p" onClick={saveQualify}><Ic n="arrow" s={13}/>Créer le client</button>
-            </div>
+      {modal==="qualify"&&selectedLead&&(<div className="overlay" onClick={e=>e.target===e.currentTarget&&setModal(null)}>
+        <div className="modal wide fade-in">
+          <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:4}}><div><div className="modal-title" style={{marginBottom:2}}>Fiche de qualification</div><div style={{fontSize:12,color:"var(--text3)"}}>Conversion de {selectedLead.name}</div></div><button className="ib" onClick={()=>setModal(null)}><Ic n="x" s={18}/></button></div>
+          <div className="modal-section">Coordonnées</div>
+          <div className="fr">
+            <div className="fg"><label className="fl">Nom complet</label><input className="fi" value={qualifyForm.name} onChange={e=>setQualifyForm(p=>({...p,name:e.target.value}))}/></div>
+            <div className="fg"><label className="fl">Téléphone</label><input className="fi" value={qualifyForm.phone} onChange={e=>setQualifyForm(p=>({...p,phone:e.target.value}))}/></div>
           </div>
+          <div className="modal-section">Critères de recherche</div>
+          <div className="fr">
+            <div className="fg"><label className="fl">Type de bien</label><input className="fi" value={qualifyForm.criteria.type} onChange={e=>setQualifyForm(p=>({...p,criteria:{...p.criteria,type:e.target.value}}))} placeholder="T2, T3..."/></div>
+            <div className="fg"><label className="fl">Budget max (€/mois)</label><input className="fi" value={qualifyForm.criteria.budgetMax} onChange={e=>setQualifyForm(p=>({...p,criteria:{...p.criteria,budgetMax:e.target.value}}))} placeholder="1100"/></div>
+          </div>
+          <div className="fr">
+            <div className="fg"><label className="fl">Secteurs</label><input className="fi" value={qualifyForm.criteria.sectors} onChange={e=>setQualifyForm(p=>({...p,criteria:{...p.criteria,sectors:e.target.value}}))} placeholder="Lyon 6e, Lyon 3e..."/></div>
+            <div className="fg"><label className="fl">Date emménagement</label><input className="fi" type="date" value={qualifyForm.criteria.moveDate} onChange={e=>setQualifyForm(p=>({...p,criteria:{...p.criteria,moveDate:e.target.value}}))}/></div>
+          </div>
+          <div className="modal-section">Dossier</div>
+          <div className="fr">
+            <div className="fg"><label className="fl">Profil</label><select className="fi" value={qualifyForm.criteria.profile} onChange={e=>setQualifyForm(p=>({...p,criteria:{...p.criteria,profile:e.target.value}}))}>
+              <option value="">—</option>{["Salarié CDI","Salarié CDD","Indépendant","Étudiant","Retraité","Autre"].map(v=><option key={v}>{v}</option>)}
+            </select></div>
+            <div className="fg"><label className="fl">Revenus nets / mois</label><input className="fi" value={qualifyForm.criteria.revenues} onChange={e=>setQualifyForm(p=>({...p,criteria:{...p.criteria,revenues:e.target.value}}))} placeholder="2 500 €"/></div>
+          </div>
+          <div className="modal-section">Notes</div>
+          <div className="fg"><textarea className="fi" rows={3} value={qualifyForm.notes} onChange={e=>setQualifyForm(p=>({...p,notes:e.target.value}))} placeholder="Contexte, observations..."/></div>
+          <div className="fa"><button className="btn btn-g" onClick={()=>setModal(null)}>Annuler</button><button className="btn btn-p" onClick={saveQualify}><Ic n="arrow" s={13}/>Créer le client</button></div>
         </div>
-      )}
+      </div>)}
 
       {/* MODAL FICHE CLIENT */}
-      {modal==="fiche" && selectedClient && (
-        <div className="overlay" onClick={e=>e.target===e.currentTarget&&setModal(null)}>
-          <div className="modal wide fade-in">
-            <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:4}}>
-              <div className="modal-title" style={{marginBottom:0}}>Fiche client</div>
-              <button className="ib" onClick={()=>setModal(null)}><Ic n="x" s={18}/></button>
-            </div>
-            <div className="modal-section">Informations</div>
-            <div className="fr">
-              <div className="fg"><label className="fl">Nom</label><input className="fi" value={selectedClient.name} onChange={e=>setSelectedClient(p=>({...p,name:e.target.value}))}/></div>
-              <div className="fg">
-                <label className="fl">Téléphone</label>
-                <div style={{display:"flex",gap:8,alignItems:"center"}}>
-                  <input className="fi" value={selectedClient.phone} onChange={e=>setSelectedClient(p=>({...p,phone:e.target.value}))}/>
-                  <a className="tel-link" href={"tel:"+selectedClient.phone.replace(/\s/g,"")} style={{flexShrink:0,whiteSpace:"nowrap"}}><Ic n="phone" s={12}/>Appeler</a>
-                </div>
-              </div>
-            </div>
-            <div className="fr">
-              <div className="fg"><label className="fl">Email</label><input className="fi" value={selectedClient.email} onChange={e=>setSelectedClient(p=>({...p,email:e.target.value}))}/></div>
-              <div className="fg">
-                <label className="fl">Statut</label>
-                <select className="fi" value={selectedClient.column} onChange={e=>setSelectedClient(p=>({...p,column:e.target.value}))}>
-                  {PROD_COLS.map(c=><option key={c.id} value={c.id}>{c.label}</option>)}
-                </select>
-              </div>
-            </div>
-            <div className="modal-section">Critères de recherche</div>
-            <div className="fr">
-              <div className="fg"><label className="fl">Type de bien</label><input className="fi" value={selectedClient.criteria.type} onChange={e=>setSelectedClient(p=>({...p,criteria:{...p.criteria,type:e.target.value}}))} placeholder="T2, T3..."/></div>
-              <div className="fg"><label className="fl">Budget max (€/mois)</label><input className="fi" value={selectedClient.criteria.budgetMax} onChange={e=>setSelectedClient(p=>({...p,criteria:{...p.criteria,budgetMax:e.target.value}}))} placeholder="1100"/></div>
-            </div>
-            <div className="fr">
-              <div className="fg"><label className="fl">Secteurs</label><input className="fi" value={selectedClient.criteria.sectors} onChange={e=>setSelectedClient(p=>({...p,criteria:{...p.criteria,sectors:e.target.value}}))} placeholder="Lyon 6e, Lyon 3e..."/></div>
-              <div className="fg"><label className="fl">Surface min (m²)</label><input className="fi" value={selectedClient.criteria.surfaceMin} onChange={e=>setSelectedClient(p=>({...p,criteria:{...p.criteria,surfaceMin:e.target.value}}))} placeholder="40"/></div>
-            </div>
-            <div className="fr">
-              <div className="fg"><label className="fl">Date emménagement</label><input className="fi" type="date" value={selectedClient.criteria.moveDate} onChange={e=>setSelectedClient(p=>({...p,criteria:{...p.criteria,moveDate:e.target.value}}))}/></div>
-              <div className="fg"><label className="fl">Critères spécifiques</label><input className="fi" value={selectedClient.criteria.specific} onChange={e=>setSelectedClient(p=>({...p,criteria:{...p.criteria,specific:e.target.value}}))} placeholder="Parking, animaux..."/></div>
-            </div>
-            <div className="modal-section">Dossier</div>
-            <div className="fr">
-              <div className="fg">
-                <label className="fl">Profil</label>
-                <select className="fi" value={selectedClient.criteria.profile} onChange={e=>setSelectedClient(p=>({...p,criteria:{...p.criteria,profile:e.target.value}}))}>
-                  <option value="">—</option>
-                  {["Salarié CDI","Salarié CDD","Indépendant","Étudiant","Retraité","Autre"].map(v=><option key={v}>{v}</option>)}
-                </select>
-              </div>
-              <div className="fg"><label className="fl">Revenus nets / mois</label><input className="fi" value={selectedClient.criteria.revenues} onChange={e=>setSelectedClient(p=>({...p,criteria:{...p.criteria,revenues:e.target.value}}))} placeholder="2500 €"/></div>
-            </div>
-            <div className="fr">
-              <div className="fg">
-                <label className="fl">Garant</label>
-                <select className="fi" value={selectedClient.criteria.guarantor} onChange={e=>setSelectedClient(p=>({...p,criteria:{...p.criteria,guarantor:e.target.value}}))}>
-                  <option value="">—</option>
-                  {["Oui (parents)","Oui (organisme)","Non","Visale"].map(v=><option key={v}>{v}</option>)}
-                </select>
-              </div>
-            </div>
-            <div className="modal-section">Note</div>
-            <div className="fg"><textarea className="fi" rows={3} value={selectedClient.notes} onChange={e=>setSelectedClient(p=>({...p,notes:e.target.value}))} placeholder="Observations, historique..."/></div>
-            <div className="fa">
-              <button className="btn btn-sm" style={{background:"var(--red-bg)",color:"var(--red)",border:"1.5px solid #FECACA"}} onClick={()=>{deleteClient(selectedClient.id);setModal(null);}}>Supprimer</button>
-              <button className="btn btn-g" onClick={()=>setModal(null)}>Annuler</button>
-              <button className="btn btn-p" onClick={saveFiche}><Ic n="check" s={13}/>Enregistrer</button>
-            </div>
+      {modal==="fiche"&&selectedClient&&(<div className="overlay" onClick={e=>e.target===e.currentTarget&&setModal(null)}>
+        <div className="modal wide fade-in">
+          <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:4}}><div className="modal-title" style={{marginBottom:0}}>Fiche client</div><button className="ib" onClick={()=>setModal(null)}><Ic n="x" s={18}/></button></div>
+          <div className="modal-section">Informations</div>
+          <div className="fr">
+            <div className="fg"><label className="fl">Nom</label><input className="fi" value={selectedClient.name} onChange={e=>setSelectedClient(p=>({...p,name:e.target.value}))}/></div>
+            <div className="fg"><label className="fl">Téléphone</label><div style={{display:"flex",gap:8,alignItems:"center"}}><input className="fi" value={selectedClient.phone} onChange={e=>setSelectedClient(p=>({...p,phone:e.target.value}))}/><a className="tel-link" href={"tel:"+selectedClient.phone.replace(/\s/g,"")} style={{flexShrink:0}}><Ic n="phone" s={12}/>Appeler</a></div></div>
+          </div>
+          <div className="fr">
+            <div className="fg"><label className="fl">Email</label><input className="fi" value={selectedClient.email} onChange={e=>setSelectedClient(p=>({...p,email:e.target.value}))}/></div>
+            <div className="fg"><label className="fl">Statut</label><select className="fi" value={selectedClient.column} onChange={e=>setSelectedClient(p=>({...p,column:e.target.value}))}>{PROD_COLS.map(c=><option key={c.id} value={c.id}>{c.label}</option>)}</select></div>
+          </div>
+          <div className="modal-section">Critères</div>
+          <div className="fr">
+            <div className="fg"><label className="fl">Type de bien</label><input className="fi" value={selectedClient.criteria.type} onChange={e=>setSelectedClient(p=>({...p,criteria:{...p.criteria,type:e.target.value}}))} placeholder="T2, T3..."/></div>
+            <div className="fg"><label className="fl">Budget max</label><input className="fi" value={selectedClient.criteria.budgetMax} onChange={e=>setSelectedClient(p=>({...p,criteria:{...p.criteria,budgetMax:e.target.value}}))}/></div>
+          </div>
+          <div className="fr">
+            <div className="fg"><label className="fl">Secteurs</label><input className="fi" value={selectedClient.criteria.sectors} onChange={e=>setSelectedClient(p=>({...p,criteria:{...p.criteria,sectors:e.target.value}}))}/></div>
+            <div className="fg"><label className="fl">Profil</label><select className="fi" value={selectedClient.criteria.profile} onChange={e=>setSelectedClient(p=>({...p,criteria:{...p.criteria,profile:e.target.value}}))}>
+              <option value="">—</option>{["Salarié CDI","Salarié CDD","Indépendant","Étudiant","Retraité","Autre"].map(v=><option key={v}>{v}</option>)}
+            </select></div>
+          </div>
+          <div className="modal-section">Note</div>
+          <div className="fg"><textarea className="fi" rows={3} value={selectedClient.notes} onChange={e=>setSelectedClient(p=>({...p,notes:e.target.value}))} placeholder="Observations..."/></div>
+          <div className="fa">
+            <button className="btn btn-sm" style={{background:"var(--red-bg)",color:"var(--red)",border:"1.5px solid #FECACA"}} onClick={()=>{deleteClient(selectedClient.id);setModal(null);}}>Supprimer</button>
+            <button className="btn btn-g" onClick={()=>setModal(null)}>Annuler</button>
+            <button className="btn btn-p" onClick={saveFiche}><Ic n="check" s={13}/>Enregistrer</button>
           </div>
         </div>
-      )}
+      </div>)}
 
       {/* MODAL RDV */}
-      {modal==="appt" && (
-        <div className="overlay" onClick={e=>e.target===e.currentTarget&&setModal(null)}>
-          <div className="modal fade-in">
-            <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:18}}>
-              <div className="modal-title" style={{marginBottom:0}}>Nouveau rendez-vous</div>
-              <button className="ib" onClick={()=>setModal(null)}><Ic n="x" s={18}/></button>
-            </div>
-            <div className="fg">
-              <label className="fl">Client</label>
-              <select className="fi" value={apptForm.clientId} onChange={e=>setApptForm(p=>({...p,clientId:e.target.value}))}>
-                <option value="">— Sélectionner —</option>
-                {clients.map(c=><option key={c.id} value={c.id}>{c.name}</option>)}
-              </select>
-            </div>
-            <div className="fg"><label className="fl">Titre</label><input className="fi" value={apptForm.title} onChange={e=>setApptForm(p=>({...p,title:e.target.value}))} placeholder="Visite T3 — 14 rue Vendôme"/></div>
-            <div className="fr">
-              <div className="fg"><label className="fl">Date</label><input className="fi" type="date" value={apptForm.date} onChange={e=>setApptForm(p=>({...p,date:e.target.value}))}/></div>
-              <div className="fg"><label className="fl">Heure</label><input className="fi" type="time" value={apptForm.time} onChange={e=>setApptForm(p=>({...p,time:e.target.value}))}/></div>
-            </div>
-            <div className="fr">
-              <div className="fg"><label className="fl">Durée (min)</label><input className="fi" type="number" value={apptForm.duration} onChange={e=>setApptForm(p=>({...p,duration:e.target.value}))}/></div>
-              <div className="fg"><label className="fl">Lieu / Lien</label><input className="fi" value={apptForm.location} onChange={e=>setApptForm(p=>({...p,location:e.target.value}))} placeholder="Adresse ou Meet"/></div>
-            </div>
-            <div className="fg"><label className="fl">Notes</label><input className="fi" value={apptForm.notes} onChange={e=>setApptForm(p=>({...p,notes:e.target.value}))}/></div>
-            <div className="fa">
-              <button className="btn btn-g" onClick={()=>setModal(null)}>Annuler</button>
-              <button className="btn btn-p" onClick={saveAppt}><Ic n="check" s={13}/>Créer</button>
-            </div>
+      {modal==="appt"&&(<div className="overlay" onClick={e=>e.target===e.currentTarget&&setModal(null)}>
+        <div className="modal fade-in">
+          <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:18}}><div className="modal-title" style={{marginBottom:0}}>Nouveau rendez-vous</div><button className="ib" onClick={()=>setModal(null)}><Ic n="x" s={18}/></button></div>
+          <div className="fg"><label className="fl">Client</label><select className="fi" value={apptForm.clientId} onChange={e=>setApptForm(p=>({...p,clientId:e.target.value}))}><option value="">— Sélectionner —</option>{clients.map(c=><option key={c.id} value={c.id}>{c.name}</option>)}</select></div>
+          <div className="fg"><label className="fl">Titre</label><input className="fi" value={apptForm.title} onChange={e=>setApptForm(p=>({...p,title:e.target.value}))} placeholder="Visite T3 — 14 rue Vendôme"/></div>
+          <div className="fr">
+            <div className="fg"><label className="fl">Date</label><input className="fi" type="date" value={apptForm.date} onChange={e=>setApptForm(p=>({...p,date:e.target.value}))}/></div>
+            <div className="fg"><label className="fl">Heure</label><input className="fi" type="time" value={apptForm.time} onChange={e=>setApptForm(p=>({...p,time:e.target.value}))}/></div>
           </div>
+          <div className="fr">
+            <div className="fg"><label className="fl">Durée (min)</label><input className="fi" type="number" value={apptForm.duration} onChange={e=>setApptForm(p=>({...p,duration:e.target.value}))}/></div>
+            <div className="fg"><label className="fl">Lieu</label><input className="fi" value={apptForm.location} onChange={e=>setApptForm(p=>({...p,location:e.target.value}))}/></div>
+          </div>
+          <div className="fa"><button className="btn btn-g" onClick={()=>setModal(null)}>Annuler</button><button className="btn btn-p" onClick={saveAppt}><Ic n="check" s={13}/>Créer</button></div>
         </div>
-      )}
+      </div>)}
 
       {/* TOASTS */}
       <div className="toast-wrap">
-        {toasts.map(t=>(
-          <div key={t.id} className={`toast ${t.type} ${t.out?"out":""}`}>
-            <div className="toast-icon"><Ic n={t.type==="success"?"check":t.type==="orange"?"calendar":"bell"} s={14}/></div>
-            {t.text}
-          </div>
-        ))}
+        {toasts.map(t=>(<div key={t.id} className={`toast ${t.type} ${t.out?"out":""}`}><div className="toast-icon"><Ic n={t.type==="success"?"check":"bell"} s={14}/></div>{t.text}</div>))}
       </div>
     </>
   );
 }
 
-// ─── MANUAL NOTE FORM ──────────────────────────────────────────────────────
+function PlanNoteEditor({taskId, planTasks, setPlanTasks, addToast}){
+  const ts = planTasks[taskId]||{};
+  const [val, setVal] = React.useState(ts.notes||"");
+  const [saved, setSaved] = React.useState(false);
+  const save = () => {
+    setPlanTasks(p=>({...p,[taskId]:{...(p[taskId]||{}),notes:val,updatedAt:new Date().toISOString()}}));
+    setSaved(true); addToast("Note enregistrée","success");
+    setTimeout(()=>setSaved(false),2000);
+  };
+  return(
+    <div>
+      <textarea className="fi" rows={4} value={val} onChange={e=>setVal(e.target.value)} placeholder="Ajouter une note..." style={{resize:"vertical",minHeight:80}}/>
+      <div style={{display:"flex",alignItems:"center",gap:10,marginTop:8}}>
+        <button className="btn btn-p btn-sm" onClick={save}>Enregistrer</button>
+        {saved&&<span style={{fontSize:12,color:"var(--green)",fontWeight:600}}>Sauvegardé ✓</span>}
+      </div>
+    </div>
+  );
+}
+
 function ManualNoteForm({lead, onSave}){
   const [val,setVal]=useState("");
   return(
@@ -1359,7 +1091,6 @@ function ManualNoteForm({lead, onSave}){
     </div>
   );
 }
-
 
     const domNode = document.getElementById('root');
     const root = ReactDOM.createRoot(domNode);
