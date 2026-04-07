@@ -122,6 +122,7 @@ const ICONS = (s) => ({
   download:<svg width={s} height={s} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>,
   history:<svg width={s} height={s} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-4.95"/></svg>,
   chart:<svg width={s} height={s} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>,
+  users:<svg width={s} height={s} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>,
 });
 const Ic = ({n,s=16}) => { const m=ICONS(s); return m[n]||null; };
 
@@ -673,6 +674,7 @@ function App(){
               {id:"production",icon:"home",label:"Production",badge:ca.length||null,bc:"orange"},
               {id:"agenda",icon:"calendar",label:"Agenda",badge:todayCount||null,bc:"blue"},
               {id:"stats",icon:"chart",label:"Statistiques",badge:null,bc:""},
+              {id:"partenaires",icon:"users",label:"Partenaires",badge:null,bc:""},
             ].map(n=>(
               <div key={n.id} className={"nav-item"+(page===n.id?" active":"")} onClick={()=>setPage(n.id)}>
                 <div className="nav-icon"><Ic n={n.icon} s={15}/></div>
@@ -1080,6 +1082,8 @@ function App(){
       </div>
 
       {/* MODAL LEAD */}
+      {page==="partenaires"&&<PartenairesPage/>}
+
       {modal==="lead" && (
         <div className="overlay" onClick={e=>e.target===e.currentTarget&&(setModal(null),setLeadError(""))}>
           <div className="modal fade-in">
@@ -1361,6 +1365,171 @@ function ManualNoteForm({lead, onSave}){
   );
 }
 
+
+
+// ── API PARTENAIRES ──────────────────────────────────────────────
+const PARTNERS_API = 'https://script.google.com/macros/s/AKfycbyPQFA-DM8doJkjDp3oc8J9s-BFn2X6QQtaeshYkC1z5HwGkIVsflFl8vPh5kHXTchwlw/exec';
+async function pGet(){try{const r=await fetch(PARTNERS_API);return r.json();}catch{return [];}}
+async function pPost(data){await fetch(PARTNERS_API,{method:'POST',mode:'no-cors',headers:{'Content-Type':'application/json'},body:JSON.stringify(data)});}
+
+// ── PARTNER MODAL ─────────────────────────────────────────────────
+function PartnerModal({data,onSave,onClose,saving}){
+  const empty={id:'',agence:'',nom:'',prenom:'',email:'',telephone:''};
+  const [f,setF]=useState(data||empty);
+  const set=(k,v)=>setF(p=>({...p,[k]:v}));
+  const submit=()=>{if(!f.agence.trim()&&!f.nom.trim())return;onSave(f);};
+  return(
+    <div className="overlay" onClick={e=>e.target===e.currentTarget&&!saving&&onClose()}>
+      <div className="modal fade-in" style={{maxWidth:480}}>
+        <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:18}}>
+          <div className="modal-title" style={{marginBottom:0}}>{data?'Modifier':'Nouveau contact'}</div>
+          <button className="ib" onClick={onClose}><Ic n="x" s={18}/></button>
+        </div>
+        <div className="fg"><label className="fl">Agence *</label><input className="fi" placeholder="Foncia Lyon 7" value={f.agence} onChange={e=>set('agence',e.target.value)} autoFocus disabled={saving}/></div>
+        <div className="fr">
+          <div className="fg"><label className="fl">Nom</label><input className="fi" placeholder="Martin" value={f.nom} onChange={e=>set('nom',e.target.value)} disabled={saving}/></div>
+          <div className="fg"><label className="fl">Prénom</label><input className="fi" placeholder="Sophie" value={f.prenom} onChange={e=>set('prenom',e.target.value)} disabled={saving}/></div>
+        </div>
+        <div className="fg"><label className="fl">Email</label><input className="fi" type="email" placeholder="sophie@foncia.com" value={f.email} onChange={e=>set('email',e.target.value)} disabled={saving}/></div>
+        <div className="fg"><label className="fl">Téléphone</label><input className="fi" placeholder="06 12 34 56 78" value={f.telephone} onChange={e=>set('telephone',e.target.value)} onKeyDown={e=>e.key==='Enter'&&submit()} disabled={saving}/></div>
+        <div className="fa">
+          <button className="btn btn-g" onClick={onClose} disabled={saving}>Annuler</button>
+          <button className="btn btn-p" onClick={submit} disabled={saving}><Ic n="check" s={13}/>{saving?'Envoi…':'Enregistrer'}</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ── PARTENAIRES PAGE ──────────────────────────────────────────────
+function PartenairesPage(){
+  const [partners,setPartners]=useState([]);
+  const [search,setSearch]=useState('');
+  const [modal,setModal]=useState(null);
+  const [saving,setSaving]=useState(false);
+  const [loading,setLoading]=useState(true);
+  const [syncing,setSyncing]=useState(false);
+  const [newIds,setNewIds]=useState(new Set());
+  const prevIds=useRef(new Set());
+  const pollTimer=useRef(null);
+
+  const showToast=(text)=>{
+    const id=Date.now();
+    setToasts(p=>[...p,{id,text,type:"success"}]);
+    setTimeout(()=>setToasts(p=>p.map(t=>t.id===id?{...t,out:true}:t)),2500);
+    setTimeout(()=>setToasts(p=>p.filter(t=>t.id!==id)),2800);
+  };
+
+  const fetchData=async(silent=false)=>{
+    if(!silent)setLoading(true);else setSyncing(true);
+    try{
+      const data=await pGet();
+      const arr=Array.isArray(data)?data:[];
+      const currentIds=new Set(arr.map(p=>String(p.id)));
+      const added=[...currentIds].filter(id=>prevIds.current.size>0&&!prevIds.current.has(id));
+      if(added.length>0){
+        setNewIds(new Set(added));
+        showToast(added.length+" nouveau"+(added.length>1?"x":"")+" contact"+(added.length>1?"s":"")+" ajouté"+(added.length>1?"s":"")+" par le stagiaire");
+        setTimeout(()=>setNewIds(new Set()),5000);
+      }
+      prevIds.current=currentIds;
+      setPartners(arr);
+    }catch(e){if(!silent)showToast('Erreur de connexion');}
+    finally{setLoading(false);setSyncing(false);}
+  };
+
+  useEffect(()=>{
+    fetchData();
+    pollTimer.current=setInterval(()=>fetchData(true),8000);
+    return()=>clearInterval(pollTimer.current);
+  },[]);
+
+  const onSave=async(f)=>{
+    setSaving(true);
+    const isNew=!f.id;
+    const payload={...f,id:f.id||Date.now().toString(),action:isNew?'add':'update'};
+    try{
+      await pPost(payload);
+      setPartners(prev=>isNew?[...prev,payload]:prev.map(x=>x.id===payload.id?payload:x));
+      prevIds.current.add(String(payload.id));
+      setModal(null);
+      showToast(isNew?'Contact ajouté':'Contact modifié');
+      setTimeout(()=>fetchData(true),2000);
+    }catch{showToast('Erreur envoi');}
+    finally{setSaving(false);}
+  };
+
+  const onDelete=async(id)=>{
+    if(!window.confirm('Supprimer ?'))return;
+    try{
+      await pPost({action:'delete',id});
+      setPartners(prev=>prev.filter(x=>x.id!==id));
+      prevIds.current.delete(String(id));
+      showToast('Contact supprimé');
+    }catch{showToast('Erreur');}
+  };
+
+  const exportCSV=()=>{
+    const headers=['Agence','Nom','Prénom','Email','Téléphone'];
+    const rows=partners.map(p=>[p.agence,p.nom,p.prenom,p.email,p.telephone]);
+    const csv=[headers,...rows].map(r=>r.map(v=>'"'+(v||'').replace(/"/g,'""')+'"').join(';')).join('\n');
+    const blob=new Blob(['\uFEFF'+csv],{type:'text/csv;charset=utf-8;'});
+    const url=URL.createObjectURL(blob);
+    const a=document.createElement('a');a.href=url;
+    a.download='partenaires-soloc-'+new Date().toISOString().slice(0,10)+'.csv';
+    a.click();URL.revokeObjectURL(url);
+    showToast('Export téléchargé');
+  };
+
+  const q=search.toLowerCase();
+  const filtered=partners.filter(p=>!q||[p.agence,p.nom,p.prenom,p.email,p.telephone].some(v=>(v||'').toLowerCase().includes(q)));
+
+  return(
+    <div className="fade-in">
+      <div className="ph">
+        <div className="pt">Partenaires <span>& Réseau</span></div>
+        <div className="ps">Gestionnaires & commerciaux location à démarcher{syncing&&<span style={{fontSize:11,opacity:0.6}}> · sync…</span>}</div>
+      </div>
+      <div style={{display:'flex',gap:10,marginBottom:16,flexWrap:'wrap',alignItems:'center'}}>
+        <input style={{flex:1,minWidth:200,padding:'9px 13px',border:'1px solid var(--border)',borderRadius:8,fontFamily:'inherit',fontSize:13,background:'var(--surface)',color:'var(--text1)',outline:'none'}} placeholder="🔍  Rechercher agence, nom, email…" value={search} onChange={e=>setSearch(e.target.value)}/>
+        <button className="btn btn-g" onClick={exportCSV}>⬇ Export CSV</button>
+        <button className="btn btn-p" onClick={()=>setModal('new')}><Ic n="plus" s={13}/>Ajouter</button>
+      </div>
+      <div className="sc" style={{padding:0,overflow:'hidden'}}>
+        <div style={{display:'grid',gridTemplateColumns:'2fr 1.3fr 1.3fr 2fr 1.4fr 70px',padding:'9px 14px',background:'var(--bg2)',fontSize:11,fontWeight:800,textTransform:'uppercase',letterSpacing:'0.5px',color:'var(--text3)',borderBottom:'1px solid var(--border)'}}>
+          <div>Agence</div><div>Nom</div><div>Prénom</div><div>Email</div><div>Téléphone</div><div></div>
+        </div>
+        {loading?(
+          <div style={{textAlign:'center',padding:'40px',color:'var(--text3)',fontSize:13}}>Chargement…</div>
+        ):filtered.length===0?(
+          <div style={{textAlign:'center',padding:'48px 20px',color:'var(--text3)'}}>
+            <div style={{fontSize:28,marginBottom:8}}>{partners.length===0?'📋':'🔍'}</div>
+            <div style={{fontWeight:700,color:'var(--text1)',marginBottom:4}}>{partners.length===0?'Aucun contact encore':'Aucun résultat'}</div>
+            <div style={{fontSize:12}}>{partners.length===0?'Clique sur Ajouter pour commencer.':'Essaie un autre mot-clé.'}</div>
+          </div>
+        ):filtered.map(p=>(
+          <div key={p.id} style={{display:'grid',gridTemplateColumns:'2fr 1.3fr 1.3fr 2fr 1.4fr 70px',padding:'11px 14px',borderBottom:'1px solid var(--border)',alignItems:'center',fontSize:13}}
+            onMouseEnter={e=>e.currentTarget.style.background='var(--bg2)'} onMouseLeave={e=>e.currentTarget.style.background=''}>
+            <div style={{fontWeight:700,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap',paddingRight:8}}>
+              {p.agence||'—'}{newIds.has(String(p.id))&&<span style={{marginLeft:5,background:'#E2F7EF',color:'#1A7A55',fontSize:10,fontWeight:800,padding:'1px 5px',borderRadius:8}}>NEW</span>}
+            </div>
+            <div style={{overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap',paddingRight:8}}>{p.nom||'—'}</div>
+            <div style={{overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap',paddingRight:8}}>{p.prenom||'—'}</div>
+            <div style={{overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap',paddingRight:8}}>
+              {p.email?<a href={"mailto:"+p.email} style={{color:'var(--blue)',textDecoration:'none'}}>{p.email}</a>:<span style={{color:'var(--text3)'}}>—</span>}
+            </div>
+            <div style={{color:'var(--text3)',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap',paddingRight:8}}>{p.telephone||'—'}</div>
+            <div style={{display:'flex',gap:5,justifyContent:'flex-end'}}>
+              <button className="ib" onClick={()=>setModal(p)}><Ic n="edit" s={13}/></button>
+              <button className="ib" style={{color:'var(--red)'}} onClick={()=>onDelete(p.id)}><Ic n="trash" s={13}/></button>
+            </div>
+          </div>
+        ))}
+      </div>
+      {modal&&<PartnerModal data={modal==='new'?null:modal} onSave={onSave} onClose={()=>setModal(null)} saving={saving}/>}
+    </div>
+  );
+}
 
     const domNode = document.getElementById('root');
     const root = ReactDOM.createRoot(domNode);
