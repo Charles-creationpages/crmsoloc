@@ -673,15 +673,15 @@ function App(){
               {id:"agenda",icon:"calendar",label:"Agenda",badge:todayCount||null,bc:"blue"},
               {id:"stats",icon:"chart",label:"Statistiques",badge:null,bc:""},
             ].map(n=>(
-              <div key={n.id} className={`nav-item ${page===n.id?"active":""}`} onClick={()=>setPage(n.id)}>
+              <div key={n.id} className={"nav-item"+(page===n.id?" active":"")} onClick={()=>setPage(n.id)}>
                 <div className="nav-icon"><Ic n={n.icon} s={15}/></div>
                 {n.label}
-                {n.badge&&<span className={`nav-badge ${n.bc}`}>{n.badge}</span>}
+                {n.badge&&<span className={"nav-badge "+n.bc}>{n.badge}</span>}
               </div>
             ))}
           </div>
           <div className="sb-footer">
-            <button className={`gcal-btn ${gcal?"on":""}`} onClick={connectGcal}>
+            <button className={"gcal-btn"+(gcal?" on":"")} onClick={connectGcal}>
               <Ic n="google" s={14}/>{gcal?"Google connecté ✓":"Connecter Google Cal"}
             </button>
             {gcal&&<p style={{fontSize:10,color:"var(--text3)",textAlign:"center",marginTop:5,fontWeight:500}}>Sync Apple Calendar 🍎 actif</p>}
@@ -822,7 +822,7 @@ function App(){
                   {LEAD_COLS.map(col=>{
                     const colLeads=filteredLeads.filter(l=>l.column===col.id);
                     return(
-                      <div key={col.id} className={`kb-col ${dragOver===col.id?"drag-over":""}`}
+                      <div key={col.id} className={"kb-col"+(dragOver===col.id?" drag-over":"")}
                         onDragOver={e=>{e.preventDefault();setDragOver(col.id);}}
                         onDragLeave={()=>setDragOver(null)}
                         onDrop={e=>onDrop(e,col.id)}
@@ -833,7 +833,7 @@ function App(){
                           const urg=leadUrgency(lead);
                           return(
                             <div key={lead.id}
-                              className={`kb-card ${urg==="red"?"urgent":urg==="orange"?"warn":lead.relanceApptId?"relance-sched":""}`}
+                              className={"kb-card"+(urg==="red"?" urgent":urg==="orange"?" warn":lead.relanceApptId?" relance-sched":"")}
                               draggable
                               onDragStart={e=>onDragStart(e,lead.id,"lead")}>
                               <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start"}}>
@@ -875,7 +875,7 @@ function App(){
                   </div>
                   <div style={{display:"flex",gap:8,alignItems:"center"}}>
                     <button className="btn-export" onClick={exportClients}><Ic n="download" s={13}/>Export CSV</button>
-                    <div className="vt"><button className={`vt-btn ${prodView==="kanban"?"active":""}`} onClick={()=>setProdView("kanban")}><Ic n="kanban" s={13}/>Kanban</button><button className={`vt-btn ${prodView==="list"?"active":""}`} onClick={()=>setProdView("list")}><Ic n="list" s={13}/>Liste</button></div>
+                    <div className="vt"><button className={"vt-btn"+(prodView==="kanban"?" active":"")} onClick={()=>setProdView("kanban")}><Ic n="kanban" s={13}/>Kanban</button><button className={"vt-btn"+(prodView==="list"?" active":"")} onClick={()=>setProdView("list")}><Ic n="list" s={13}/>Liste</button></div>
                     <button className="btn btn-p" onClick={addNewClient}><Ic n="plus" s={14}/>Nouveau client</button>
                   </div>
                 </div>
@@ -885,7 +885,7 @@ function App(){
                       const cc=filteredClients.filter(c=>c.column===col.id);
                       return(
                         <div key={col.id}
-                          className={`kb-col ${dragOver===col.id?"drag-over":""}`}
+                          className={"kb-col"+(dragOver===col.id?" drag-over":"")}
                           onDragOver={e=>{e.preventDefault();setDragOver(col.id);}}
                           onDragLeave={()=>setDragOver(null)}
                           onDrop={e=>onDrop(e,col.id)}
@@ -895,7 +895,7 @@ function App(){
                             const inactive=daysSince(cl.lastActivity)>=7&&cl.column!=="lost";
                             return(
                               <div key={cl.id}
-                                className={`prod-card ${inactive?"inactive":""}`}
+                                className={"prod-card"+(inactive?" inactive":"")}
                                 draggable
                                 onDragStart={e=>onDragStart(e,cl.id,"client")}>
                                 <div style={{fontWeight:700,fontSize:13,color:"var(--text)",marginBottom:2}} onClick={()=>{setSelectedClient({...cl});setModal("fiche");}}>{cl.name}</div>
@@ -964,7 +964,7 @@ function App(){
                     <div style={{fontSize:11,fontWeight:700,color:"var(--orange)",letterSpacing:".06em",textTransform:"uppercase",marginBottom:9}}>📞 Relances programmées</div>
                     {appts.filter(a=>a.isRelance).sort((a,b)=>a.date.localeCompare(b.date)).map(appt=>{
                       const d=fmtDate(appt.date);const lead=leads.find(l=>l.id===appt.leadId);const isT=isToday(appt.date);
-                      return(<div key={appt.id} className={`appt-card relance-card ${isT?"today-card":""}`}>
+                      return(<div key={appt.id} className={"appt-card relance-card"+(isT?" today-card":"")}>
                         <div className="adb orange"><div className="aday">{d.day}</div><div className="amo">{d.month}</div></div>
                         <div style={{flex:1}}>
                           <div style={{display:"flex",alignItems:"center",gap:7,marginBottom:3}}>
@@ -990,7 +990,7 @@ function App(){
                 {appts.filter(a=>!a.isRelance).length===0&&<div style={{textAlign:"center",padding:"28px",color:"var(--text3)"}}>Aucun RDV — cliquez sur "Nouveau RDV"</div>}
                 {appts.filter(a=>!a.isRelance).sort((a,b)=>a.date.localeCompare(b.date)).map(appt=>{
                   const d=fmtDate(appt.date);const cl=clients.find(c=>c.id===appt.clientId);const isT=isToday(appt.date);
-                  return(<div key={appt.id} className={`appt-card ${appt.gcalId?"synced":""} ${isT?"today-card":""}`}>
+                  return(<div key={appt.id} className={"appt-card"+(appt.gcalId?" synced":"")+(isT?" today-card":"")}>
                     <div className="adb"><div className="aday">{d.day}</div><div className="amo">{d.month}</div></div>
                     <div style={{flex:1}}>
                       <div style={{display:"flex",alignItems:"center",gap:7,marginBottom:3}}>
@@ -1339,7 +1339,7 @@ function App(){
       {/* TOASTS */}
       <div className="toast-wrap">
         {toasts.map(t=>(
-          <div key={t.id} className={`toast ${t.type} ${t.out?"out":""}`}>
+          <div key={t.id} className={"toast "+t.type+(t.out?" out":"")}>
             <div className="toast-icon"><Ic n={t.type==="success"?"check":t.type==="orange"?"calendar":"bell"} s={14}/></div>
             {t.text}
           </div>
