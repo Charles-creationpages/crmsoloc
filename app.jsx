@@ -5,8 +5,8 @@ const GCAL = { CLIENT_ID:"YOUR_CLIENT_ID.apps.googleusercontent.com", API_KEY:"Y
 
 // ─── STORAGE ───────────────────────────────────────────────────────────────
 const storage = {
-  async get(k){try{const r=await window.storage.get(k);return r?JSON.parse(r.value):null;}catch{return null;}},
-  async set(k,v){try{await window.storage.set(k,JSON.stringify(v));}catch{}}
+  async get(k){try{const r=localStorage.getItem("s7_"+k);return r?JSON.parse(r):null;}catch{return null;}},
+  async set(k,v){try{localStorage.setItem("s7_"+k,JSON.stringify(v));}catch{}}
 };
 
 // ─── DATE HELPERS ──────────────────────────────────────────────────────────
