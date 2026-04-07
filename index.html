@@ -1367,16 +1367,16 @@ function ManualNoteForm({lead, onSave}){
 
 
 
-// ── API PARTENAIRES ──────────────────────────────────────────────
+
+// ── API PARTENAIRES ──────────────────────────────────────────────────────
 const PARTNERS_API = 'https://script.google.com/macros/s/AKfycbyPQFA-DM8doJkjDp3oc8J9s-BFn2X6QQtaeshYkC1z5HwGkIVsflFl8vPh5kHXTchwlw/exec';
 async function pGet(){try{const r=await fetch(PARTNERS_API);return r.json();}catch{return [];}}
 async function pPost(data){await fetch(PARTNERS_API,{method:'POST',mode:'no-cors',headers:{'Content-Type':'application/json'},body:JSON.stringify(data)});}
 
-// ── PARTNER MODAL ─────────────────────────────────────────────────
+// ── PARTNER MODAL ────────────────────────────────────────────────────────
 function PartnerModal({data,onSave,onClose,saving}){
-  const empty={id:'',agence:'',nom:'',prenom:'',email:'',telephone:''};
-  const [f,setF]=useState(data||empty);
-  const set=(k,v)=>setF(p=>({...p,[k]:v}));
+  const [f,setF]=useState(data||{id:'',agence:'',nom:'',prenom:'',email:'',telephone:''});
+  const upd=(k,v)=>setF(p=>({...p,[k]:v}));
   const submit=()=>{if(!f.agence.trim()&&!f.nom.trim())return;onSave(f);};
   return(
     <div className="overlay" onClick={e=>e.target===e.currentTarget&&!saving&&onClose()}>
@@ -1385,13 +1385,13 @@ function PartnerModal({data,onSave,onClose,saving}){
           <div className="modal-title" style={{marginBottom:0}}>{data?'Modifier':'Nouveau contact'}</div>
           <button className="ib" onClick={onClose}><Ic n="x" s={18}/></button>
         </div>
-        <div className="fg"><label className="fl">Agence *</label><input className="fi" placeholder="Foncia Lyon 7" value={f.agence} onChange={e=>set('agence',e.target.value)} autoFocus disabled={saving}/></div>
+        <div className="fg"><label className="fl">Agence *</label><input className="fi" placeholder="Foncia Lyon 7" value={f.agence} onChange={e=>upd('agence',e.target.value)} autoFocus disabled={saving}/></div>
         <div className="fr">
-          <div className="fg"><label className="fl">Nom</label><input className="fi" placeholder="Martin" value={f.nom} onChange={e=>set('nom',e.target.value)} disabled={saving}/></div>
-          <div className="fg"><label className="fl">Prénom</label><input className="fi" placeholder="Sophie" value={f.prenom} onChange={e=>set('prenom',e.target.value)} disabled={saving}/></div>
+          <div className="fg"><label className="fl">Nom</label><input className="fi" placeholder="Martin" value={f.nom} onChange={e=>upd('nom',e.target.value)} disabled={saving}/></div>
+          <div className="fg"><label className="fl">Prénom</label><input className="fi" placeholder="Sophie" value={f.prenom} onChange={e=>upd('prenom',e.target.value)} disabled={saving}/></div>
         </div>
-        <div className="fg"><label className="fl">Email</label><input className="fi" type="email" placeholder="sophie@foncia.com" value={f.email} onChange={e=>set('email',e.target.value)} disabled={saving}/></div>
-        <div className="fg"><label className="fl">Téléphone</label><input className="fi" placeholder="06 12 34 56 78" value={f.telephone} onChange={e=>set('telephone',e.target.value)} onKeyDown={e=>e.key==='Enter'&&submit()} disabled={saving}/></div>
+        <div className="fg"><label className="fl">Email</label><input className="fi" type="email" placeholder="sophie@foncia.com" value={f.email} onChange={e=>upd('email',e.target.value)} disabled={saving}/></div>
+        <div className="fg"><label className="fl">Téléphone</label><input className="fi" placeholder="06 12 34 56 78" value={f.telephone} onChange={e=>upd('telephone',e.target.value)} onKeyDown={e=>e.key==='Enter'&&submit()} disabled={saving}/></div>
         <div className="fa">
           <button className="btn btn-g" onClick={onClose} disabled={saving}>Annuler</button>
           <button className="btn btn-p" onClick={submit} disabled={saving}><Ic n="check" s={13}/>{saving?'Envoi…':'Enregistrer'}</button>
@@ -1401,85 +1401,66 @@ function PartnerModal({data,onSave,onClose,saving}){
   );
 }
 
-// ── PARTENAIRES PAGE ──────────────────────────────────────────────
+// ── PARTENAIRES PAGE ─────────────────────────────────────────────────────
 function PartenairesPage(){
   const [partners,setPartners]=useState([]);
   const [search,setSearch]=useState('');
-  const [modal,setModal]=useState(null);
+  const [pModal,setPModal]=useState(null);
   const [saving,setSaving]=useState(false);
   const [loading,setLoading]=useState(true);
   const [syncing,setSyncing]=useState(false);
   const [newIds,setNewIds]=useState(new Set());
+  const [pToast,setPToast]=useState('');
   const prevIds=useRef(new Set());
-  const pollTimer=useRef(null);
+  const pollRef=useRef(null);
+  const toastRef=useRef(null);
 
-  const [localToast,setLocalToast]=useState('');
-  const localToastTimer=useRef(null);
-  const showToast=(text)=>{
-    setLocalToast(text);
-    clearTimeout(localToastTimer.current);
-    localToastTimer.current=setTimeout(()=>setLocalToast(''),2800);
-  };
+  const toast=(msg)=>{setPToast(msg);clearTimeout(toastRef.current);toastRef.current=setTimeout(()=>setPToast(''),2800);};
 
-  const fetchData=async(silent=false)=>{
+  const load=async(silent)=>{
     if(!silent)setLoading(true);else setSyncing(true);
     try{
       const data=await pGet();
       const arr=Array.isArray(data)?data:[];
-      const currentIds=new Set(arr.map(p=>String(p.id)));
-      const added=[...currentIds].filter(id=>prevIds.current.size>0&&!prevIds.current.has(id));
-      if(added.length>0){
-        setNewIds(new Set(added));
-        showToast(added.length+" nouveau"+(added.length>1?"x":"")+" contact"+(added.length>1?"s":"")+" ajouté"+(added.length>1?"s":"")+" par le stagiaire");
-        setTimeout(()=>setNewIds(new Set()),5000);
-      }
-      prevIds.current=currentIds;
+      const ids=new Set(arr.map(p=>String(p.id)));
+      const added=[...ids].filter(id=>prevIds.current.size>0&&!prevIds.current.has(id));
+      if(added.length>0){setNewIds(new Set(added));toast(added.length+' nouveau contact ajouté par le stagiaire');setTimeout(()=>setNewIds(new Set()),5000);}
+      prevIds.current=ids;
       setPartners(arr);
-    }catch(e){if(!silent)showToast('Erreur de connexion');}
+    }catch(e){if(!silent)toast('Erreur de connexion');}
     finally{setLoading(false);setSyncing(false);}
   };
 
-  useEffect(()=>{
-    fetchData();
-    pollTimer.current=setInterval(()=>fetchData(true),8000);
-    return()=>clearInterval(pollTimer.current);
-  },[]);
+  useEffect(()=>{load(false);pollRef.current=setInterval(()=>load(true),8000);return()=>clearInterval(pollRef.current);},[]);
 
-  const onSave=async(f)=>{
+  const save=async(f)=>{
     setSaving(true);
     const isNew=!f.id;
-    const payload={...f,id:f.id||Date.now().toString(),action:isNew?'add':'update'};
+    const p={...f,id:f.id||Date.now().toString(),action:isNew?'add':'update'};
     try{
-      await pPost(payload);
-      setPartners(prev=>isNew?[...prev,payload]:prev.map(x=>x.id===payload.id?payload:x));
-      prevIds.current.add(String(payload.id));
-      setModal(null);
-      showToast(isNew?'Contact ajouté':'Contact modifié');
-      setTimeout(()=>fetchData(true),2000);
-    }catch{showToast('Erreur envoi');}
+      await pPost(p);
+      setPartners(prev=>isNew?[...prev,p]:prev.map(x=>x.id===p.id?p:x));
+      prevIds.current.add(String(p.id));
+      setPModal(null);
+      toast(isNew?'Contact ajouté':'Contact modifié');
+      setTimeout(()=>load(true),2000);
+    }catch{toast('Erreur envoi');}
     finally{setSaving(false);}
   };
 
-  const onDelete=async(id)=>{
+  const del=async(id)=>{
     if(!window.confirm('Supprimer ?'))return;
-    try{
-      await pPost({action:'delete',id});
-      setPartners(prev=>prev.filter(x=>x.id!==id));
-      prevIds.current.delete(String(id));
-      showToast('Contact supprimé');
-    }catch{showToast('Erreur');}
+    try{await pPost({action:'delete',id});setPartners(prev=>prev.filter(x=>x.id!==id));prevIds.current.delete(String(id));toast('Supprimé');}
+    catch{toast('Erreur');}
   };
 
-  const exportCSV=()=>{
-    const headers=['Agence','Nom','Prénom','Email','Téléphone'];
+  const csv=()=>{
+    const h=['Agence','Nom','Prénom','Email','Téléphone'];
     const rows=partners.map(p=>[p.agence,p.nom,p.prenom,p.email,p.telephone]);
-    const csv=[headers,...rows].map(r=>r.map(v=>'"'+(v||'').replace(/"/g,'""')+'"').join(';')).join('\n');
-    const blob=new Blob(['\uFEFF'+csv],{type:'text/csv;charset=utf-8;'});
-    const url=URL.createObjectURL(blob);
-    const a=document.createElement('a');a.href=url;
-    a.download='partenaires-soloc-'+new Date().toISOString().slice(0,10)+'.csv';
-    a.click();URL.revokeObjectURL(url);
-    showToast('Export téléchargé');
+    const c=[h,...rows].map(r=>r.map(v=>'"'+(v||'').replace(/"/g,'""')+'"').join(';')).join('\n');
+    const b=new Blob(['\uFEFF'+c],{type:'text/csv;charset=utf-8;'});
+    const u=URL.createObjectURL(b);
+    const a=document.createElement('a');a.href=u;a.download='partenaires-soloc-'+new Date().toISOString().slice(0,10)+'.csv';a.click();URL.revokeObjectURL(u);
   };
 
   const q=search.toLowerCase();
@@ -1489,30 +1470,40 @@ function PartenairesPage(){
     <div className="fade-in">
       <div className="ph">
         <div className="pt">Partenaires <span>& Réseau</span></div>
-        <div className="ps">Gestionnaires & commerciaux location à démarcher{syncing&&<span style={{fontSize:11,opacity:0.6}}> · sync…</span>}</div>
+        <div className="ps">
+          Gestionnaires & commerciaux location à démarcher — {partners.length} contact{partners.length!==1?'s':''}
+          {syncing&&<span style={{fontSize:11,opacity:0.5}}> · sync…</span>}
+        </div>
       </div>
       <div style={{display:'flex',gap:10,marginBottom:16,flexWrap:'wrap',alignItems:'center'}}>
-        <input style={{flex:1,minWidth:200,padding:'9px 13px',border:'1px solid var(--border)',borderRadius:8,fontFamily:'inherit',fontSize:13,background:'var(--surface)',color:'var(--text1)',outline:'none'}} placeholder="🔍  Rechercher agence, nom, email…" value={search} onChange={e=>setSearch(e.target.value)}/>
-        <button className="btn btn-g" onClick={exportCSV}>⬇ Export CSV</button>
-        <button className="btn btn-p" onClick={()=>setModal('new')}><Ic n="plus" s={13}/>Ajouter</button>
+        <input
+          style={{flex:1,minWidth:200,padding:'9px 13px',border:'1px solid var(--border)',borderRadius:8,fontFamily:'inherit',fontSize:13,background:'var(--surface)',color:'var(--text1)',outline:'none'}}
+          placeholder="🔍  Rechercher agence, nom, email…"
+          value={search} onChange={e=>setSearch(e.target.value)}
+        />
+        <button className="btn btn-g" onClick={csv}>⬇ Export CSV</button>
+        <button className="btn btn-p" onClick={()=>setPModal('new')}><Ic n="plus" s={13}/>Ajouter</button>
       </div>
       <div className="sc" style={{padding:0,overflow:'hidden'}}>
         <div style={{display:'grid',gridTemplateColumns:'2fr 1.3fr 1.3fr 2fr 1.4fr 70px',padding:'9px 14px',background:'var(--bg2)',fontSize:11,fontWeight:800,textTransform:'uppercase',letterSpacing:'0.5px',color:'var(--text3)',borderBottom:'1px solid var(--border)'}}>
           <div>Agence</div><div>Nom</div><div>Prénom</div><div>Email</div><div>Téléphone</div><div></div>
         </div>
-        {loading?(
-          <div style={{textAlign:'center',padding:'40px',color:'var(--text3)',fontSize:13}}>Chargement…</div>
-        ):filtered.length===0?(
+        {loading&&<div style={{textAlign:'center',padding:'40px',color:'var(--text3)',fontSize:13}}>Chargement…</div>}
+        {!loading&&filtered.length===0&&(
           <div style={{textAlign:'center',padding:'48px 20px',color:'var(--text3)'}}>
-            <div style={{fontSize:28,marginBottom:8}}>{partners.length===0?'📋':'🔍'}</div>
+            <div style={{fontSize:32,marginBottom:8}}>{partners.length===0?'📋':'🔍'}</div>
             <div style={{fontWeight:700,color:'var(--text1)',marginBottom:4}}>{partners.length===0?'Aucun contact encore':'Aucun résultat'}</div>
             <div style={{fontSize:12}}>{partners.length===0?'Clique sur Ajouter pour commencer.':'Essaie un autre mot-clé.'}</div>
           </div>
-        ):filtered.map(p=>(
-          <div key={p.id} style={{display:'grid',gridTemplateColumns:'2fr 1.3fr 1.3fr 2fr 1.4fr 70px',padding:'11px 14px',borderBottom:'1px solid var(--border)',alignItems:'center',fontSize:13}}
-            onMouseEnter={e=>e.currentTarget.style.background='var(--bg2)'} onMouseLeave={e=>e.currentTarget.style.background=''}>
+        )}
+        {!loading&&filtered.map(p=>(
+          <div key={p.id}
+            style={{display:'grid',gridTemplateColumns:'2fr 1.3fr 1.3fr 2fr 1.4fr 70px',padding:'11px 14px',borderBottom:'1px solid var(--border)',alignItems:'center',fontSize:13,transition:'background 0.1s'}}
+            onMouseEnter={e=>e.currentTarget.style.background='var(--bg2)'}
+            onMouseLeave={e=>e.currentTarget.style.background=''}>
             <div style={{fontWeight:700,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap',paddingRight:8}}>
-              {p.agence||'—'}{newIds.has(String(p.id))&&<span style={{marginLeft:5,background:'#E2F7EF',color:'#1A7A55',fontSize:10,fontWeight:800,padding:'1px 5px',borderRadius:8}}>NEW</span>}
+              {p.agence||'—'}
+              {newIds.has(String(p.id))&&<span style={{marginLeft:5,background:'#E2F7EF',color:'#1A7A55',fontSize:10,fontWeight:800,padding:'1px 5px',borderRadius:8}}>NEW</span>}
             </div>
             <div style={{overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap',paddingRight:8}}>{p.nom||'—'}</div>
             <div style={{overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap',paddingRight:8}}>{p.prenom||'—'}</div>
@@ -1521,14 +1512,14 @@ function PartenairesPage(){
             </div>
             <div style={{color:'var(--text3)',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap',paddingRight:8}}>{p.telephone||'—'}</div>
             <div style={{display:'flex',gap:5,justifyContent:'flex-end'}}>
-              <button className="ib" onClick={()=>setModal(p)}><Ic n="edit" s={13}/></button>
-              <button className="ib" style={{color:'var(--red)'}} onClick={()=>onDelete(p.id)}><Ic n="trash" s={13}/></button>
+              <button className="ib" onClick={()=>setPModal(p)}><Ic n="edit" s={13}/></button>
+              <button className="ib" style={{color:'var(--red)'}} onClick={()=>del(p.id)}><Ic n="trash" s={13}/></button>
             </div>
           </div>
         ))}
       </div>
-      {modal&&<PartnerModal data={modal==='new'?null:modal} onSave={onSave} onClose={()=>setModal(null)} saving={saving}/>}
-      {localToast&&<div style={{position:'fixed',bottom:24,right:24,background:'var(--navy,#0D1F35)',color:'#fff',padding:'10px 18px',borderRadius:8,fontSize:13,fontWeight:600,zIndex:200,boxShadow:'0 8px 24px rgba(0,0,0,0.2)'}}>{localToast}</div>}
+      {pModal&&<PartnerModal data={pModal==='new'?null:pModal} onSave={save} onClose={()=>setPModal(null)} saving={saving}/>}
+      {pToast&&<div style={{position:'fixed',bottom:24,right:24,background:'#1a2a3a',color:'#fff',padding:'10px 18px',borderRadius:8,fontSize:13,fontWeight:600,zIndex:999,boxShadow:'0 8px 24px rgba(0,0,0,0.25)'}}>{pToast}</div>}
     </div>
   );
 }
