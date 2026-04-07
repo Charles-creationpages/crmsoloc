@@ -1413,11 +1413,12 @@ function PartenairesPage(){
   const prevIds=useRef(new Set());
   const pollTimer=useRef(null);
 
+  const [localToast,setLocalToast]=useState('');
+  const localToastTimer=useRef(null);
   const showToast=(text)=>{
-    const id=Date.now();
-    setToasts(p=>[...p,{id,text,type:"success"}]);
-    setTimeout(()=>setToasts(p=>p.map(t=>t.id===id?{...t,out:true}:t)),2500);
-    setTimeout(()=>setToasts(p=>p.filter(t=>t.id!==id)),2800);
+    setLocalToast(text);
+    clearTimeout(localToastTimer.current);
+    localToastTimer.current=setTimeout(()=>setLocalToast(''),2800);
   };
 
   const fetchData=async(silent=false)=>{
@@ -1527,6 +1528,7 @@ function PartenairesPage(){
         ))}
       </div>
       {modal&&<PartnerModal data={modal==='new'?null:modal} onSave={onSave} onClose={()=>setModal(null)} saving={saving}/>}
+      {localToast&&<div style={{position:'fixed',bottom:24,right:24,background:'var(--navy,#0D1F35)',color:'#fff',padding:'10px 18px',borderRadius:8,fontSize:13,fontWeight:600,zIndex:200,boxShadow:'0 8px 24px rgba(0,0,0,0.2)'}}>{localToast}</div>}
     </div>
   );
 }
