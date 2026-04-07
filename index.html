@@ -1083,7 +1083,6 @@ function App(){
       </div>
 
       {/* MODAL LEAD */}
-      {page==="partenaires"&&<PartenairesPage/>}
 
       {modal==="lead" && (
         <div className="overlay" onClick={e=>e.target===e.currentTarget&&(setModal(null),setLeadError(""))}>
