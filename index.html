@@ -497,9 +497,12 @@ function App(){
   const filteredClients=clients.filter(c=>c.name.toLowerCase().includes(q)||c.phone.includes(q)||c.email.toLowerCase().includes(q));
 
   // ── DRAG & DROP ──
-  const onDragStart=(e,id,type)=>{dragItem.current=id;dragType.current=type;};
+  const onDragStart=(e,id,type)=>{dragItem.current=id;dragType.current=type;e.dataTransfer.setData("text/plain",id);e.dataTransfer.effectAllowed="move";};
   const onDrop=async(e,col)=>{
-    e.preventDefault();setDragOver(null);
+    e.preventDefault();e.stopPropagation();setDragOver(null);
+    const id=e.dataTransfer.getData("text/plain")||dragItem.current;
+    if(!id){dragItem.current=null;return;}
+    if(!dragItem.current)dragItem.current=id;
     if(!dragItem.current)return;
 
     if(dragType.current==="lead"){
@@ -817,7 +820,7 @@ function App(){
                     const colLeads=filteredLeads.filter(l=>l.column===col.id);
                     return(
                       <div key={col.id} className={"kb-col"+(dragOver===col.id?" drag-over":"")}
-                        onDragOver={e=>{e.preventDefault();setDragOver(col.id);}}
+                        onDragOver={e=>{e.preventDefault();e.dataTransfer.dropEffect="move";setDragOver(col.id);}}
                         onDragLeave={()=>setDragOver(null)}
                         onDrop={e=>onDrop(e,col.id)}
                         style={{borderTop:`3px solid ${col.color}`}}>
@@ -878,7 +881,7 @@ function App(){
                       const cc=filteredClients.filter(c=>c.column===col.id);
                       return(
                         <div key={col.id} className={"kb-col"+(dragOver===col.id?" drag-over":"")}
-                          onDragOver={e=>{e.preventDefault();setDragOver(col.id);}}
+                          onDragOver={e=>{e.preventDefault();e.dataTransfer.dropEffect="move";setDragOver(col.id);}}
                           onDragLeave={()=>setDragOver(null)}
                           onDrop={e=>onDrop(e,col.id)}
                           style={{borderTop:`3px solid ${col.color}`}}>
