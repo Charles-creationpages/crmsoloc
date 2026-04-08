@@ -951,8 +951,6 @@ a.tel-link:hover{background:var(--accent);color:#fff;}
 .kb-col-title{font-size:12px;font-weight:700;}
 .kb-count{background:var(--border2);color:var(--text2);border-radius:20px;padding:1px 7px;font-size:11px;font-weight:700;}
 .kb-card{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:11px;margin-bottom:7px;cursor:grab;transition:all .18s;user-select:none;}
-.kb-card *{pointer-events:none;}
-.kb-card a,.kb-card button{pointer-events:auto;}
 .kb-card:active{cursor:grabbing;}
 .kb-card:hover{box-shadow:var(--sh-md);transform:translateY(-1px);}
 .kb-card.urgent{border-left:3px solid var(--red);}
@@ -1296,10 +1294,20 @@ function App() {
   const onDragStart = (e, id, type) => {
     dragItem.current = id;
     dragType.current = type;
+    e.dataTransfer.effectAllowed = "move";
+    e.dataTransfer.setData("text/plain", id + "|" + type);
   };
   const onDrop = async (e, col) => {
     e.preventDefault();
     setDragOver(null);
+    if (!dragItem.current) {
+      const data = e.dataTransfer.getData("text/plain");
+      if (data) {
+        const [id, type] = data.split("|");
+        dragItem.current = id;
+        dragType.current = type;
+      }
+    }
     if (!dragItem.current) return;
     if (dragType.current === "lead") {
       const lead = leads.find(l => l.id === dragItem.current);
