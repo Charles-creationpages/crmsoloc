@@ -497,7 +497,7 @@ function App(){
   const filteredClients=clients.filter(c=>c.name.toLowerCase().includes(q)||c.phone.includes(q)||c.email.toLowerCase().includes(q));
 
   // ── DRAG & DROP ──
-  const onDragStart=(e,id,type)=>{dragItem.current=id;dragType.current=type;try{e.dataTransfer.setData("text/plain",id);}catch(ex){}};
+  const onDragStart=(e,id,type)=>{dragItem.current=id;dragType.current=type;};
   const onDrop=async(e,col)=>{
     e.preventDefault();setDragOver(null);
     if(!dragItem.current)return;
