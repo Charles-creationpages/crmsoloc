@@ -584,7 +584,6 @@ function App(){
         if(col) {
           if(ds.type === 'lead') {
             setLeads(prev => prev.map(l => l.id===ds.id ? {...l, column:col} : l));
-            storage.set('s6_leads', leads.map(l => l.id===ds.id ? {...l, column:col} : l));
           } else if(ds.type === 'client') {
             setClients(prev => prev.map(c => c.id===ds.id ? {...c, column:col, lastActivity:new Date().toISOString()} : c));
           }
@@ -595,7 +594,7 @@ function App(){
 
     document.addEventListener('mousemove', onMove);
     document.addEventListener('mouseup', onUp);
-  }, [leads]);
+  }, []);
   // ─────────────────────────────────────────────────────────────
 
   // ──────────────────────────────────────────────────────────────────────────
