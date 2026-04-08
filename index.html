@@ -744,9 +744,9 @@ function App(){
                 <div className="dash-grid">
                   <div className="sc">
                     <div className="sc-hd"><div className="sc-title">⚡ Alertes &amp; Actions</div>{totalAlerts===0&&!newLeads&&<span style={{fontSize:11,fontWeight:600,color:"var(--green)"}}>✓ Tout à jour</span>}</div>
-                    {la.urgent.length>0&&(<div className="alert-block red"><div className="alert-hd red"><span className="pulse">🔴</span>{la.urgent.length} lead{la.urgent.length>1?"s":""} sans action +24h</div><div className="alert-rows">{la.urgent.map(l=>(<div key={l.id} className="alert-row"><div><div className="alert-name">{l.name}</div><div className="alert-meta"><a className="tel-link" href={"tel:"+l.phone.replace(/\s/g,"")}><Ic n="phone" s={10}/>{l.phone}</a></div></div><div style={{display:"flex",gap:7,alignItems:"center"}}><span className="alert-pill red">+{Math.floor(hoursSince(l.enteredAt))}h</span><button className="btn btn-sm" style={{background:"var(--red)",color:"#fff",fontSize:11}} onClick={()=>setPage("prospection")}>Traiter</button></div></div>))}</div></div>)}
-                    {la.relance3Due.length>0&&(<div className="alert-block orange"><div className="alert-hd orange">📞 {la.relance3Due.length} relance J+3 aujourd&apos;hui</div><div className="alert-rows">{la.relance3Due.map(l=>{const a=appts.find(x=>x.id===l.relanceApptId);return(<div key={l.id} className="alert-row"><div><div className="alert-name">{l.name}</div><div className="alert-meta"><a className="tel-link" href={"tel:"+l.phone.replace(/\s/g,"")}><Ic n="phone" s={10}/>{l.phone}</a> · {a?"à "+a.time:""}</div></div><button className="btn btn-sm btn-g" onClick={()=>setPage("agenda")}>Agenda</button></div>);})}</div></div>)}
-                    {la.relance7Due.length>0&&(<div className="alert-block orange"><div className="alert-hd orange">📞 {la.relance7Due.length} relance J+7 aujourd&apos;hui</div><div className="alert-rows">{la.relance7Due.map(l=>{const a=appts.find(x=>x.id===l.relanceApptId);return(<div key={l.id} className="alert-row"><div><div className="alert-name">{l.name}</div><div className="alert-meta"><a className="tel-link" href={"tel:"+l.phone.replace(/\s/g,"")}><Ic n="phone" s={10}/>{l.phone}</a> · {a?"à "+a.time:""}</div></div><button className="btn btn-sm btn-g" onClick={()=>setPage("agenda")}>Agenda</button></div>);})}</div></div>)}
+                    {la.urgent.length>0&&(<div className="alert-block red"><div className="alert-hd red"><span className="pulse">🔴</span>{la.urgent.length} lead{la.urgent.length>1?"s":""} sans action +24h</div><div className="alert-rows">{la.urgent.map(l=>(<div key={l.id} className="alert-row"><div><div className="alert-name">{l.name}</div><div className="alert-meta"><a className="tel-link" href={"tel:"+(l.phone||"").replace(/\s/g,"")}><Ic n="phone" s={10}/>{l.phone}</a></div></div><div style={{display:"flex",gap:7,alignItems:"center"}}><span className="alert-pill red">+{Math.floor(hoursSince(l.enteredAt))}h</span><button className="btn btn-sm" style={{background:"var(--red)",color:"#fff",fontSize:11}} onClick={()=>setPage("prospection")}>Traiter</button></div></div>))}</div></div>)}
+                    {la.relance3Due.length>0&&(<div className="alert-block orange"><div className="alert-hd orange">📞 {la.relance3Due.length} relance J+3 aujourd&apos;hui</div><div className="alert-rows">{la.relance3Due.map(l=>{const a=appts.find(x=>x.id===l.relanceApptId);return(<div key={l.id} className="alert-row"><div><div className="alert-name">{l.name}</div><div className="alert-meta"><a className="tel-link" href={"tel:"+(l.phone||"").replace(/\s/g,"")}><Ic n="phone" s={10}/>{l.phone}</a> · {a?"à "+a.time:""}</div></div><button className="btn btn-sm btn-g" onClick={()=>setPage("agenda")}>Agenda</button></div>);})}</div></div>)}
+                    {la.relance7Due.length>0&&(<div className="alert-block orange"><div className="alert-hd orange">📞 {la.relance7Due.length} relance J+7 aujourd&apos;hui</div><div className="alert-rows">{la.relance7Due.map(l=>{const a=appts.find(x=>x.id===l.relanceApptId);return(<div key={l.id} className="alert-row"><div><div className="alert-name">{l.name}</div><div className="alert-meta"><a className="tel-link" href={"tel:"+(l.phone||"").replace(/\s/g,"")}><Ic n="phone" s={10}/>{l.phone}</a> · {a?"à "+a.time:""}</div></div><button className="btn btn-sm btn-g" onClick={()=>setPage("agenda")}>Agenda</button></div>);})}</div></div>)}
                     {(la.relance3Late.length>0||la.relance7Late.length>0)&&(<div className="alert-block red"><div className="alert-hd red"><Ic n="clock" s={13}/>{la.relance3Late.length+la.relance7Late.length} relance{la.relance3Late.length+la.relance7Late.length>1?"s":""} en retard</div><div className="alert-rows">{[...la.relance3Late,...la.relance7Late].map(l=>(<div key={l.id} className="alert-row"><div><div className="alert-name">{l.name}</div><div className="alert-meta">{l.column==="relance1"?"J+3":"J+7"} · prévu le {fmtDate(l.relanceDate).full}</div></div><span className="alert-pill red">En retard</span></div>))}</div></div>)}
                     {la.interestedDue.length>0&&(
                       <div className="alert-block orange">
@@ -758,7 +758,7 @@ function App(){
                               <div key={l.id} className="alert-row">
                                 <div>
                                   <div className="alert-name">{l.name}</div>
-                                  <div className="alert-meta"><a className="tel-link" href={"tel:"+l.phone.replace(/\s/g,"")}><Ic n="phone" s={10}/>{l.phone}</a>{a?" · à "+a.time:""}</div>
+                                  <div className="alert-meta"><a className="tel-link" href={"tel:"+(l.phone||"").replace(/\s/g,"")}><Ic n="phone" s={10}/>{l.phone}</a>{a?" · à "+a.time:""}</div>
                                 </div>
                                 <button className="btn btn-sm btn-g" onClick={()=>setPage("agenda")}>Agenda</button>
                               </div>
@@ -834,7 +834,7 @@ function App(){
                                 <button className="ib" style={{padding:2,marginTop:-2}} onClick={()=>{setSelectedLead(lead);setModal("leadHistory");}}><Ic n="history" s={12}/></button>
                               </div>
                               <div className="kb-meta">
-                                <span><a className="tel-link" href={"tel:"+lead.phone.replace(/\s/g,"")} onClick={e=>e.stopPropagation()}><Ic n="phone" s={10}/>{lead.phone}</a></span>
+                                <span><a className="tel-link" href={"tel:"+(lead.phone||"").replace(/\s/g,"")} onClick={e=>e.stopPropagation()}><Ic n="phone" s={10}/>{lead.phone}</a></span>
                                 <span style={{marginTop:2}}><span style={{display:"inline-flex",background:(SOURCE_COLORS[lead.source]||"#888")+"22",color:SOURCE_COLORS[lead.source]||"#888",padding:"2px 7px",borderRadius:5,fontSize:10,fontWeight:700}}>{lead.source}</span></span>
                                 {lead.relanceDate&&(<span style={{marginTop:3}}><span style={{background:"var(--orange-bg)",color:"#92400e",borderRadius:20,padding:"2px 7px",fontSize:10,fontWeight:700}}>📅 {fmtDate(lead.relanceDate).full}</span></span>)}
                                 {urg&&!lead.relanceDate&&(<span style={{marginTop:3}}><span style={{background:urg==="red"?"var(--red-bg)":"var(--orange-bg)",color:urg==="red"?"var(--red)":"#92400e",borderRadius:20,padding:"2px 7px",fontSize:10,fontWeight:700}}>{urg==="red"?"🔴":"🟠"} +{Math.floor(hoursSince(lead.enteredAt))}h</span></span>)}
@@ -887,7 +887,7 @@ function App(){
                             const inactive=daysSince(cl.lastActivity)>=7;
                             return(<div key={cl.id} className={"prod-card"+(inactive?" inactive":"")} draggable onDragStart={e=>onDragStart(e,cl.id,"client")} onClick={()=>{setSelectedClient({...cl});setModal("fiche");}}>
                               <div style={{fontWeight:700,fontSize:13,color:"var(--text)",marginBottom:2}}>{cl.name}</div>
-                              <div style={{marginBottom:5}}><a className="tel-link" href={"tel:"+cl.phone.replace(/\s/g,"")} onClick={e=>e.stopPropagation()}><Ic n="phone" s={10}/>{cl.phone}</a></div>
+                              <div style={{marginBottom:5}}><a className="tel-link" href={"tel:"+c(l.phone||"").replace(/\s/g,"")} onClick={e=>e.stopPropagation()}><Ic n="phone" s={10}/>{cl.phone}</a></div>
                               <div style={{display:"flex",flexWrap:"wrap",gap:3,marginBottom:inactive?5:0}}>
                                 {cl.criteria.type&&<span className="crit-chip">{cl.criteria.type}</span>}
                                 {cl.criteria.budgetMax&&<span className="crit-chip">≤{cl.criteria.budgetMax}€</span>}
@@ -914,7 +914,7 @@ function App(){
                             <tr key={cl.id} style={inactive?{background:"#FFF5F5"}:{}}>
                               <td className="td-name">
                                 {cl.name}
-                                <div><a className="tel-link" href={"tel:"+cl.phone.replace(/\s/g,"")} style={{marginTop:3,display:"inline-flex"}}><Ic n="phone" s={10}/>{cl.phone}</a></div>
+                                <div><a className="tel-link" href={"tel:"+c(l.phone||"").replace(/\s/g,"")} style={{marginTop:3,display:"inline-flex"}}><Ic n="phone" s={10}/>{cl.phone}</a></div>
                               </td>
                               <td><span style={{display:"inline-flex",alignItems:"center",background:(col?.color||"#888")+"22",color:col?.color,padding:"2px 8px",borderRadius:20,fontSize:11,fontWeight:700}}><span className="col-dot" style={{background:col?.color}}/>{col?.label}</span></td>
                               <td>{cl.criteria.type||"—"}</td>
@@ -962,7 +962,7 @@ function App(){
                           </div>
                           <div style={{display:"flex",gap:10,flexWrap:"wrap",color:"var(--text3)",fontSize:12}}>
                             <span style={{display:"flex",alignItems:"center",gap:4}}><Ic n="clock" s={10}/>{appt.time} · 5 min</span>
-                            {lead&&<a className="tel-link" href={"tel:"+lead.phone.replace(/\s/g,"")}><Ic n="phone" s={10}/>{lead.phone}</a>}
+                            {lead&&<a className="tel-link" href={"tel:"+(lead.phone||"").replace(/\s/g,"")}><Ic n="phone" s={10}/>{lead.phone}</a>}
                           </div>
                         </div>
                         <div style={{display:"flex",gap:5,alignItems:"center"}}>
@@ -1129,7 +1129,7 @@ function App(){
             <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:18}}>
               <div>
                 <div className="modal-title" style={{marginBottom:2}}>Historique — {selectedLead.name}</div>
-                <a className="tel-link" href={"tel:"+selectedLead.phone.replace(/\s/g,"")}><Ic n="phone" s={11}/>{selectedLead.phone}</a>
+                <a className="tel-link" href={"tel:"+(selectedLead.phone||"").replace(/\s/g,"")}><Ic n="phone" s={11}/>{selectedLead.phone}</a>
               </div>
               <button className="ib" onClick={()=>setModal(null)}><Ic n="x" s={18}/></button>
             </div>
@@ -1169,7 +1169,7 @@ function App(){
                 <label className="fl">Téléphone</label>
                 <div style={{display:"flex",gap:8,alignItems:"center"}}>
                   <input className="fi" value={qualifyForm.phone} onChange={e=>setQualifyForm(p=>({...p,phone:e.target.value}))}/>
-                  {qualifyForm.phone && <a className="tel-link" href={"tel:"+qualifyForm.phone.replace(/\s/g,"")} style={{flexShrink:0}}><Ic n="phone" s={12}/>Appeler</a>}
+                  {qualifyForm.phone && <a className="tel-link" href={"tel:"+(qualifyForm.phone||"").replace(/\s/g,"")} style={{flexShrink:0}}><Ic n="phone" s={12}/>Appeler</a>}
                 </div>
               </div>
             </div>
