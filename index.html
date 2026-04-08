@@ -887,7 +887,7 @@ function App(){
                             const inactive=daysSince(cl.lastActivity)>=7;
                             return(<div key={cl.id} className={"prod-card"+(inactive?" inactive":"")} draggable onDragStart={e=>onDragStart(e,cl.id,"client")} onClick={()=>{setSelectedClient({...cl});setModal("fiche");}}>
                               <div style={{fontWeight:700,fontSize:13,color:"var(--text)",marginBottom:2}}>{cl.name}</div>
-                              <div style={{marginBottom:5}}><a className="tel-link" href={"tel:"+c(l.phone||"").replace(/\s/g,"")} onClick={e=>e.stopPropagation()}><Ic n="phone" s={10}/>{cl.phone}</a></div>
+                              <div style={{marginBottom:5}}><a className="tel-link" href={"tel:"+(cl.phone||"").replace(/\s/g,"")} onClick={e=>e.stopPropagation()}><Ic n="phone" s={10}/>{cl.phone}</a></div>
                               <div style={{display:"flex",flexWrap:"wrap",gap:3,marginBottom:inactive?5:0}}>
                                 {cl.criteria.type&&<span className="crit-chip">{cl.criteria.type}</span>}
                                 {cl.criteria.budgetMax&&<span className="crit-chip">≤{cl.criteria.budgetMax}€</span>}
@@ -914,7 +914,7 @@ function App(){
                             <tr key={cl.id} style={inactive?{background:"#FFF5F5"}:{}}>
                               <td className="td-name">
                                 {cl.name}
-                                <div><a className="tel-link" href={"tel:"+c(l.phone||"").replace(/\s/g,"")} style={{marginTop:3,display:"inline-flex"}}><Ic n="phone" s={10}/>{cl.phone}</a></div>
+                                <div><a className="tel-link" href={"tel:"+(cl.phone||"").replace(/\s/g,"")} style={{marginTop:3,display:"inline-flex"}}><Ic n="phone" s={10}/>{cl.phone}</a></div>
                               </td>
                               <td><span style={{display:"inline-flex",alignItems:"center",background:(col?.color||"#888")+"22",color:col?.color,padding:"2px 8px",borderRadius:20,fontSize:11,fontWeight:700}}><span className="col-dot" style={{background:col?.color}}/>{col?.label}</span></td>
                               <td>{cl.criteria.type||"—"}</td>
