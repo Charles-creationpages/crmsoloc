@@ -714,9 +714,12 @@ function App(){
       
       if(moved){
         const col=getColAtPoint(e.clientX,e.clientY);
-        if(col){
-          const fakeE={preventDefault:()=>{},stopPropagation:()=>{},dataTransfer:{getData:()=>dragging}};
-          onDrop(fakeE,col);
+        if(col&&draggingType==="lead"){
+          setLeads(prev=>prev.map(l=>l.id===dragging?{...l,column:col}:l));
+          addToast("Lead déplacé","success");
+        } else if(col&&draggingType==="client"){
+          setClients(prev=>prev.map(c=>c.id===dragging?{...c,column:col,lastActivity:new Date().toISOString()}:c));
+          addToast("Client déplacé","success");
         }
       }
       
