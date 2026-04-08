@@ -1238,7 +1238,7 @@ function App(){
                 <label className="fl">Téléphone</label>
                 <div style={{display:"flex",gap:8,alignItems:"center"}}>
                   <input className="fi" value={selectedClient.phone} onChange={e=>setSelectedClient(p=>({...p,phone:e.target.value}))}/>
-                  <a className="tel-link" href={"tel:"+selectedClient.phone.replace(/\s/g,"")} style={{flexShrink:0,whiteSpace:"nowrap"}}><Ic n="phone" s={12}/>Appeler</a>
+                  <a className="tel-link" href={"tel:"+(selectedClient.phone||"").replace(/\s/g,"")} style={{flexShrink:0,whiteSpace:"nowrap"}}><Ic n="phone" s={12}/>Appeler</a>
                 </div>
               </div>
             </div>
