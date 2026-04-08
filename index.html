@@ -650,63 +650,91 @@ function App(){
   const exportClients=()=>exportCSV(clients.map(c=>({Nom:c.name,Téléphone:c.phone,Email:c.email,Statut:PROD_COLS.find(x=>x.id===c.column)?.label||c.column,Type:c.criteria.type,Budget:c.criteria.budgetMax,Secteurs:c.criteria.sectors,Profil:c.criteria.profile,Revenus:c.criteria.revenues,Notes:c.notes})),"soloc_clients.csv");
 
 
-  // ── DRAG & DROP NATIF ──────────────────────────────────────────
+
+  // ── MOUSE DRAG & DROP ──────────────────────────────────────────
   useEffect(()=>{
-    let draggingId=null, draggingType=null;
+    if(page!=="prospection"&&page!=="production") return;
     
-    function handleDragStart(e){
+    let ghost=null, dragging=null, draggingType=null, startX=0, startY=0, moved=false;
+    
+    function getColAtPoint(x,y){
+      const cols=document.querySelectorAll('[data-col]');
+      for(let col of cols){
+        const r=col.getBoundingClientRect();
+        if(x>=r.left&&x<=r.right&&y>=r.top&&y<=r.bottom) return col.dataset.col;
+      }
+      return null;
+    }
+    
+    function onMouseDown(e){
       const card=e.currentTarget;
-      draggingId=card.dataset.id;
+      if(e.button!==0) return;
+      dragging=card.dataset.id;
       draggingType=card.dataset.type;
-      dragItem.current=draggingId;
+      startX=e.clientX; startY=e.clientY; moved=false;
+      dragItem.current=dragging;
       dragType.current=draggingType;
-      e.dataTransfer.setData('text/plain',draggingId);
-      e.dataTransfer.effectAllowed='move';
-      setTimeout(()=>card.style.opacity='0.4',0);
-    }
-    function handleDragEnd(e){
-      e.currentTarget.style.opacity='';
-      document.querySelectorAll('.kb-col').forEach(c=>c.classList.remove('drag-over'));
-    }
-    function handleDragOver(e){
-      e.preventDefault();
-      e.dataTransfer.dropEffect='move';
-      e.currentTarget.classList.add('drag-over');
-    }
-    function handleDragLeave(e){
-      e.currentTarget.classList.remove('drag-over');
-    }
-    function handleDrop(e){
-      e.preventDefault();
-      const col=e.currentTarget.dataset.col;
-      e.currentTarget.classList.remove('drag-over');
-      if(!draggingId||!col)return;
-      // Simuler le onDrop React
-      const syntheticE={preventDefault:()=>{},stopPropagation:()=>{},dataTransfer:{getData:()=>draggingId}};
-      onDrop(syntheticE,col);
-      draggingId=null;draggingType=null;
     }
     
-    function attach(){
+    function onMouseMove(e){
+      if(!dragging) return;
+      const dx=Math.abs(e.clientX-startX), dy=Math.abs(e.clientY-startY);
+      if(!moved&&dx<5&&dy<5) return;
+      moved=true;
+      
+      if(!ghost){
+        const card=document.querySelector('[data-id="'+dragging+'"]');
+        if(!card) return;
+        ghost=card.cloneNode(true);
+        ghost.style.cssText='position:fixed;opacity:0.75;pointer-events:none;z-index:9999;width:'+card.offsetWidth+'px;box-shadow:0 8px 24px rgba(0,0,0,0.2);border-radius:10px;';
+        document.body.appendChild(ghost);
+        card.style.opacity='0.3';
+      }
+      ghost.style.left=(e.clientX-80)+'px';
+      ghost.style.top=(e.clientY-20)+'px';
+      
+      document.querySelectorAll('[data-col]').forEach(c=>c.style.background='');
+      const col=getColAtPoint(e.clientX,e.clientY);
+      if(col){
+        const el=document.querySelector('[data-col="'+col+'"]');
+        if(el) el.style.background='rgba(59,130,246,0.08)';
+      }
+    }
+    
+    function onMouseUp(e){
+      if(!dragging) return;
+      
+      if(ghost){ ghost.remove(); ghost=null; }
+      const card=document.querySelector('[data-id="'+dragging+'"]');
+      if(card) card.style.opacity='';
+      document.querySelectorAll('[data-col]').forEach(c=>c.style.background='');
+      
+      if(moved){
+        const col=getColAtPoint(e.clientX,e.clientY);
+        if(col){
+          const fakeE={preventDefault:()=>{},stopPropagation:()=>{},dataTransfer:{getData:()=>dragging}};
+          onDrop(fakeE,col);
+        }
+      }
+      
+      dragging=null; moved=false;
+    }
+    
+    const timer=setTimeout(()=>{
       document.querySelectorAll('.kb-card[data-id]').forEach(card=>{
-        card.removeEventListener('dragstart',handleDragStart);
-        card.removeEventListener('dragend',handleDragEnd);
-        card.addEventListener('dragstart',handleDragStart);
-        card.addEventListener('dragend',handleDragEnd);
+        card.style.cursor='grab';
+        card.onmousedown=onMouseDown;
       });
-      document.querySelectorAll('.kb-col[data-col]').forEach(col=>{
-        col.removeEventListener('dragover',handleDragOver);
-        col.removeEventListener('dragleave',handleDragLeave);
-        col.removeEventListener('drop',handleDrop);
-        col.addEventListener('dragover',handleDragOver);
-        col.addEventListener('dragleave',handleDragLeave);
-        col.addEventListener('drop',handleDrop);
-      });
-    }
+      document.addEventListener('mousemove',onMouseMove);
+      document.addEventListener('mouseup',onMouseUp);
+    },200);
     
-    // Attacher immédiatement et après chaque changement de page
-    const timer=setTimeout(attach,100);
-    return()=>clearTimeout(timer);
+    return()=>{
+      clearTimeout(timer);
+      document.removeEventListener('mousemove',onMouseMove);
+      document.removeEventListener('mouseup',onMouseUp);
+      if(ghost){ghost.remove();ghost=null;}
+    };
   },[page,leads,clients]);
   // ───────────────────────────────────────────────────────────────
 
