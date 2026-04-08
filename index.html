@@ -658,10 +658,13 @@ function App(){
     let ghost=null, dragging=null, draggingType=null, startX=0, startY=0, moved=false;
     
     function getColAtPoint(x,y){
-      const cols=document.querySelectorAll('[data-col]');
-      for(let col of cols){
-        const r=col.getBoundingClientRect();
-        if(x>=r.left&&x<=r.right&&y>=r.top&&y<=r.bottom) return col.dataset.col;
+      // Cacher le fantôme temporairement pour que elementFromPoint fonctionne
+      if(ghost) ghost.style.display='none';
+      let el=document.elementFromPoint(x,y);
+      if(ghost) ghost.style.display='';
+      while(el){
+        if(el.dataset&&el.dataset.col) return el.dataset.col;
+        el=el.parentElement;
       }
       return null;
     }
