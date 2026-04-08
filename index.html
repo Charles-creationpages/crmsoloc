@@ -650,6 +650,35 @@ function App(){
   const exportLeads=()=>exportCSV(leads.map(l=>({Nom:l.name,Téléphone:l.phone,Email:l.email,Source:l.source,Statut:LEAD_COLS.find(c=>c.id===l.column)?.label||l.column,Notes:l.notes})),"soloc_leads.csv");
   const exportClients=()=>exportCSV(clients.map(c=>({Nom:c.name,Téléphone:c.phone,Email:c.email,Statut:PROD_COLS.find(x=>x.id===c.column)?.label||c.column,Type:c.criteria.type,Budget:c.criteria.budgetMax,Secteurs:c.criteria.sectors,Profil:c.criteria.profile,Revenus:c.criteria.revenues,Notes:c.notes})),"soloc_clients.csv");
 
+
+  // ── DROP HANDLER NATIF ────────────────────────────────────────
+  useEffect(()=>{
+    function handleDrop(e){
+      e.preventDefault();
+      const col=e.currentTarget.dataset.kbcol;
+      if(!col)return;
+      const id=e.dataTransfer.getData("id");
+      const type=e.dataTransfer.getData("type");
+      if(id) dragItem.current=id;
+      if(type) dragType.current=type;
+      setDragOver(null);
+      e.currentTarget.style.background='';
+      if(dragItem.current) onDrop({preventDefault:()=>{},stopPropagation:()=>{},...e},col);
+    }
+    function handleDragOver(e){e.preventDefault();}
+    
+    const cols=document.querySelectorAll('[data-kbcol]');
+    cols.forEach(c=>{
+      c.addEventListener('drop',handleDrop);
+      c.addEventListener('dragover',handleDragOver);
+    });
+    return()=>cols.forEach(c=>{
+      c.removeEventListener('drop',handleDrop);
+      c.removeEventListener('dragover',handleDragOver);
+    });
+  });
+  // ─────────────────────────────────────────────────────────────
+
   // ──────────────────────────────────────────────────────────────────────────
   return(
     <>
@@ -821,9 +850,8 @@ function App(){
                     const colLeads=filteredLeads.filter(l=>l.column===col.id);
                     return(
                       <div key={col.id} className={"kb-col"+(dragOver===col.id?" drag-over":"")}
-                        onDragOver={e=>{e.preventDefault();setDragOver(col.id);}}
+                        data-kbcol={col.id} onDragOver={e=>{e.preventDefault();setDragOver(col.id);}}
                         onDragLeave={()=>setDragOver(null)}
-                        onDrop={e=>onDrop(e,col.id)}
                         style={{borderTop:`3px solid ${col.color}`}}>
                         <div className="kb-col-hd"><div className="kb-col-title" style={{color:col.color}}>{col.label}</div><span className="kb-count">{colLeads.length}</span></div>
                         {(col.id==="relance1"||col.id==="relance2")&&(<div style={{fontSize:10,color:"var(--text3)",background:"var(--orange-bg)",borderRadius:6,padding:"3px 8px",marginBottom:8,fontWeight:500,textAlign:"center"}}>📅 +{col.id==="relance1"?"3":"7"}j ouvré auto</div>)}
@@ -882,9 +910,8 @@ function App(){
                       const cc=filteredClients.filter(c=>c.column===col.id);
                       return(
                         <div key={col.id} className={"kb-col"+(dragOver===col.id?" drag-over":"")}
-                          onDragOver={e=>{e.preventDefault();setDragOver(col.id);}}
+                          data-kbcol={col.id} onDragOver={e=>{e.preventDefault();setDragOver(col.id);}}
                           onDragLeave={()=>setDragOver(null)}
-                          onDrop={e=>onDrop(e,col.id)}
                           style={{borderTop:`3px solid ${col.color}`}}>
                           <div className="kb-col-hd"><div className="kb-col-title" style={{color:col.color}}>{col.label}</div><span className="kb-count">{cc.length}</span></div>
                           {cc.map(cl=>{
