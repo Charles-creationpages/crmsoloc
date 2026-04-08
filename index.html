@@ -497,9 +497,13 @@ function App(){
   const filteredClients=clients.filter(c=>c.name.toLowerCase().includes(q)||c.phone.includes(q)||c.email.toLowerCase().includes(q));
 
   // ── DRAG & DROP ──
-  const onDragStart=(e,id,type)=>{dragItem.current=id;dragType.current=type;};
+  const onDragStart=(e,id,type)=>{dragItem.current=id;dragType.current=type;e.dataTransfer.setData("id",id);e.dataTransfer.setData("type",type);};
   const onDrop=async(e,col)=>{
     e.preventDefault();setDragOver(null);
+    // Récupérer id depuis dataTransfer si dragItem perdu
+    const dtId=e.dataTransfer.getData("id");
+    const dtType=e.dataTransfer.getData("type");
+    if(dtId&&!dragItem.current){dragItem.current=dtId;dragType.current=dtType;}
     if(!dragItem.current)return;
 
     if(dragType.current==="lead"){
