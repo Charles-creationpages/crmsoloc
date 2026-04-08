@@ -393,7 +393,6 @@ function App(){
   const [selectedLead,setSelectedLead]=useState(null);
   const [qualifyForm,setQualifyForm]=useState({name:"",phone:"",email:"",notes:"",criteria:{type:"",budgetMax:"",sectors:"",surfaceMin:"",moveDate:"",specific:"",profile:"",revenues:"",guarantor:""}});
   const [prodView,setProdView]=useState("kanban");
-  const [dragOver,setDragOver]=useState(null);
   const [search,setSearch]=useState("");
   const [toasts,setToasts]=useState([]);
 
@@ -405,8 +404,6 @@ function App(){
     document.head.appendChild(el);
     return()=>{document.head.removeChild(el);};
   },[]);
-  const dragItem=useRef(null);
-  const dragType=useRef(null);
 
   const blankLead={firstName:"",lastName:"",phone:"",email:"",source:"Site web",notes:""};
   const blankAppt={clientId:"",title:"",date:"",time:"09:00",duration:60,location:"",notes:""};
@@ -496,136 +493,7 @@ function App(){
   const filteredLeads=leads.filter(l=>l.name.toLowerCase().includes(q)||l.phone.includes(q)||l.email.toLowerCase().includes(q));
   const filteredClients=clients.filter(c=>c.name.toLowerCase().includes(q)||c.phone.includes(q)||c.email.toLowerCase().includes(q));
 
-  // ── DRAG & DROP ──
-  const onDragStart=(e,id,type)=>{dragItem.current=id;dragType.current=type;e.dataTransfer.setData("text/plain",id);e.dataTransfer.effectAllowed="move";};
-  const onDrop=async(e,col)=>{
-    e.preventDefault();e.stopPropagation();setDragOver(null);
-    const id=e.dataTransfer.getData("text/plain")||dragItem.current;
-    if(!id){dragItem.current=null;return;}
-    if(!dragItem.current)dragItem.current=id;
-    if(!dragItem.current)return;
-
-    if(dragType.current==="lead"){
-      const lead=leads.find(l=>l.id===dragItem.current);
-      if(!lead){dragItem.current=null;return;}
-      if(lead.column===col){dragItem.current=null;return;}
-
-      let updatedLead={...lead,column:col};
-      let newAppt=null;
-      const today=fmtDDMMYYYY(nowISO());
-
-      // Build history event based on destination
-      let histEvent=null;
-      if(col==="relance1"){
-        histEvent=mkEvent("📞","Appelé le "+today+" — pas de réponse");
-      } else if(col==="relance2"){
-        const r1Event=lead.history?.find(h=>h.text.includes("Appelé le"));
-        const r1Date=r1Event?r1Event.text.match(/\d{2}\/\d{2}\/\d{4}/)?.[0]||today:today;
-        histEvent=mkEvent("🔁","Appel relance J+3 le "+r1Date+" — pas de réponse");
-      } else if(col==="interested"){
-        histEvent=mkEvent("🔥","Intérêt confirmé le "+today+" — dossier envoyé");
-        // Schedule a follow-up in 7 working days
-        const targetDate=addWorkingDays(new Date(),7);
-        const time=findRelanceSlot(appts,targetDate);
-        const apptId="ri"+Date.now();
-        newAppt={id:apptId,clientId:null,leadId:lead.id,title:"🔥 Relance Chaud — "+lead.name,date:targetDate,time,duration:5,location:"Téléphone",notes:lead.phone,gcalId:null,isRelance:true};
-        updatedLead={...updatedLead,relanceDate:targetDate,relanceApptId:apptId};
-        if(gcal){try{const gid=await GCalSvc.create(newAppt,"Relance Chaud "+lead.name);newAppt={...newAppt,gcalId:gid};}catch{}}
-        addToast("📅 Relance Chaud planifiée — "+fmtDate(targetDate).full+" à "+time,"orange");
-      } else if(col==="qualified"){
-        histEvent=mkEvent("✅","Qualifié le "+today);
-      } else if(col==="lost"){
-        histEvent=mkEvent("❌","Perdu le "+today);
-      } else if(col==="new"){
-        histEvent=mkEvent("↩️","Remis en nouveau lead le "+today);
-      }
-      if(histEvent) updatedLead={...updatedLead,history:[...(lead.history||[]),histEvent]};
-
-      // Auto-schedule relance agenda
-      if(col==="relance1"||col==="relance2"){
-        const daysOff=col==="relance1"?3:7;
-        const targetDate=addWorkingDays(new Date(),daysOff);
-        if(lead.relanceApptId){
-          const old=appts.find(a=>a.id===lead.relanceApptId);
-          if(old?.gcalId)await GCalSvc.del(old.gcalId);
-          setAppts(p=>p.filter(a=>a.id!==lead.relanceApptId));
-        }
-        const time=findRelanceSlot(appts,targetDate);
-        const apptId="ra"+Date.now();
-        const label=col==="relance1"?"Relance J+3":"Relance J+7";
-        newAppt={id:apptId,clientId:null,leadId:lead.id,title:`📞 ${label} — ${lead.name}`,date:targetDate,time,duration:5,location:"Téléphone",notes:lead.phone,gcalId:null,isRelance:true};
-        updatedLead={...updatedLead,relanceDate:targetDate,relanceApptId:apptId};
-        if(gcal){try{const gid=await GCalSvc.create(newAppt,label+" "+lead.name);newAppt={...newAppt,gcalId:gid};}catch{}}
-        addToast(`📅 ${label} créée — ${fmtDate(targetDate).full} à ${time}`,"orange");
-      }
-
-      // Clean relance if moving away
-      if(!["relance1","relance2"].includes(col)&&lead.relanceApptId){
-        const old=appts.find(a=>a.id===lead.relanceApptId);
-        if(old?.gcalId)await GCalSvc.del(old.gcalId);
-        setAppts(p=>p.filter(a=>a.id!==lead.relanceApptId));
-        updatedLead={...updatedLead,relanceDate:null,relanceApptId:null};
-      }
-
-      setLeads(p=>p.map(l=>l.id===dragItem.current?updatedLead:l));
-      if(newAppt)setAppts(p=>[...p,newAppt]);
-    } else {
-      setClients(p=>p.map(c=>c.id===dragItem.current?{...c,column:col,lastActivity:nowISO()}:c));
-      addToast(`✓ Client déplacé — ${PROD_COLS.find(c=>c.id===col)?.label}`,"success");
-    }
-    dragItem.current=null;
-  };
-
-  // ── CONVERT ──
-  const blankCriteria = {type:"",budgetMax:"",sectors:"",surfaceMin:"",moveDate:"",specific:"",profile:"",revenues:"",guarantor:""};
-
-  const convertLead=(lead)=>{
-    setSelectedLead(lead);
-    setQualifyForm({
-      name: lead.name||"",
-      phone: lead.phone||"",
-      email: lead.email||"",
-      notes: lead.notes||"",
-      criteria: {...blankCriteria},
-    });
-    setModal("qualify");
-  };
-
-  const saveQualify=()=>{
-    if(selectedLead?.relanceApptId) setAppts(p=>p.filter(a=>a.id!==selectedLead.relanceApptId));
-    const nc={
-      id:"c"+Date.now(),
-      name:qualifyForm.name, phone:qualifyForm.phone, email:qualifyForm.email,
-      enteredAt:nowISO(), column:"searching",
-      criteria:qualifyForm.criteria,
-      notes:qualifyForm.notes, lastActivity:nowISO()
-    };
-    setLeads(p=>p.map(l=>l.id===selectedLead.id?{...l,column:"qualified",history:[...(l.history||[]),mkEvent("🏠","Converti en client le "+fmtDDMMYYYY(nowISO()))]}:l));
-    setClients(p=>[...p,nc]);
-    setModal(null);
-    addToast("🏠 "+nc.name+" converti en client !","success");
-  };
-
-  const connectGcal=async()=>{try{await GCalSvc.signIn();setGcal(true);addToast("Google Calendar connecté ✓","success");}catch{addToast("Connexion GCal échouée","info");}};
-  const pushGcal=async(appt)=>{if(!gcal){addToast("Connectez Google Calendar d'abord","info");return;}const cl=clients.find(c=>c.id===appt.clientId);try{const id=await GCalSvc.create(appt,cl?.name||"");setAppts(p=>p.map(a=>a.id===appt.id?{...a,gcalId:id}:a));addToast("✓ Synced dans Google Calendar","success");}catch{addToast("Erreur GCal","info");}};
-
-  const saveLead=()=>{
-    const hasIdentity = leadForm.firstName.trim() || leadForm.lastName.trim();
-    const hasContact  = leadForm.phone.trim() || leadForm.email.trim();
-    if(!hasIdentity || !hasContact){
-      setLeadError(!hasIdentity
-        ? "Renseignez au moins un prénom ou un nom."
-        : "Renseignez au moins un téléphone ou un email."
-      );
-      return;
-    }
-    const fullName = [leadForm.firstName.trim(), leadForm.lastName.trim()].filter(Boolean).join(" ");
-    const nl={id:"l"+Date.now(),...leadForm,name:fullName,enteredAt:nowISO(),column:"new",relanceDate:null,relanceApptId:null,history:[mkEvent("🌱","Lead créé — source : "+leadForm.source)]};
-    setLeads(p=>[...p,nl]);setModal(null);setLeadForm(blankLead);setLeadError("");
-    addToast("✓ Lead "+fullName+" ajouté","success");
-  };
-  const saveAppt=()=>{setAppts(p=>[...p,{id:"a"+Date.now(),...apptForm,duration:parseInt(apptForm.duration),gcalId:null,isRelance:false}]);setModal(null);setApptForm(blankAppt);addToast("✓ RDV créé","success");};
-  const saveFiche=()=>{setClients(p=>p.map(c=>c.id===selectedClient.id?{...selectedClient,lastActivity:nowISO()}:c));setModal(null);addToast(`✓ Fiche ${selectedClient.name} enregistrée`,"success");};
+  
   const deleteClient=(id)=>{if(confirm("Supprimer ?"))setClients(p=>p.filter(c=>c.id!==id));};
   const deleteLead=async(lead)=>{if(!confirm("Supprimer ?"))return;if(lead.relanceApptId){const a=appts.find(x=>x.id===lead.relanceApptId);if(a?.gcalId)await GCalSvc.del(a.gcalId);setAppts(p=>p.filter(x=>x.id!==lead.relanceApptId));}setLeads(p=>p.filter(l=>l.id!==lead.id));};
   const deleteAppt=async(a)=>{if(!confirm("Supprimer ?"))return;if(a.gcalId)await GCalSvc.del(a.gcalId);if(a.leadId)setLeads(p=>p.map(l=>l.id===a.leadId?{...l,relanceApptId:null,relanceDate:null}:l));setAppts(p=>p.filter(x=>x.id!==a.id));};
@@ -651,98 +519,84 @@ function App(){
 
 
 
-  // ── MOUSE DRAG & DROP ──────────────────────────────────────────
-  useEffect(()=>{
-    if(page!=="prospection"&&page!=="production") return;
-    
-    let ghost=null, dragging=null, draggingType=null, startX=0, startY=0, moved=false;
-    
-    function getColAtPoint(x,y){
-      // Cacher le fantôme temporairement pour que elementFromPoint fonctionne
-      if(ghost) ghost.style.display='none';
-      let el=document.elementFromPoint(x,y);
-      if(ghost) ghost.style.display='';
-      while(el){
-        if(el.dataset&&el.dataset.col) return el.dataset.col;
-        el=el.parentElement;
+
+  // ── DRAG & DROP ───────────────────────────────────────────────
+  const dragState = useRef({id:null, type:null, ghost:null, active:false});
+
+  const startDrag = useCallback((e, id, type) => {
+    if(e.button !== 0) return;
+    e.stopPropagation();
+    const ds = dragState.current;
+    ds.id = id;
+    ds.type = type;
+    ds.active = false;
+
+    const card = e.currentTarget;
+    const rect = card.getBoundingClientRect();
+    const offX = e.clientX - rect.left;
+    const offY = e.clientY - rect.top;
+
+    function onMove(ev) {
+      if(!ds.active && Math.abs(ev.clientX-e.clientX)<5 && Math.abs(ev.clientY-e.clientY)<5) return;
+      if(!ds.active) {
+        ds.active = true;
+        const g = card.cloneNode(true);
+        g.style.cssText = 'position:fixed;z-index:9999;pointer-events:none;opacity:0.8;width:'+rect.width+'px;box-shadow:0 8px 32px rgba(0,0,0,0.25);border-radius:10px;transform:rotate(2deg);';
+        document.body.appendChild(g);
+        ds.ghost = g;
+        card.style.opacity = '0.3';
       }
-      return null;
-    }
-    
-    function onMouseDown(e){
-      const card=e.currentTarget;
-      if(e.button!==0) return;
-      dragging=card.dataset.id;
-      draggingType=card.dataset.type;
-      startX=e.clientX; startY=e.clientY; moved=false;
-      dragItem.current=dragging;
-      dragType.current=draggingType;
-    }
-    
-    function onMouseMove(e){
-      if(!dragging) return;
-      const dx=Math.abs(e.clientX-startX), dy=Math.abs(e.clientY-startY);
-      if(!moved&&dx<5&&dy<5) return;
-      moved=true;
-      
-      if(!ghost){
-        const card=document.querySelector('[data-id="'+dragging+'"]');
-        if(!card) return;
-        ghost=card.cloneNode(true);
-        ghost.style.cssText='position:fixed;opacity:0.75;pointer-events:none;z-index:9999;width:'+card.offsetWidth+'px;box-shadow:0 8px 24px rgba(0,0,0,0.2);border-radius:10px;';
-        document.body.appendChild(ghost);
-        card.style.opacity='0.3';
+      ds.ghost.style.left = (ev.clientX - offX) + 'px';
+      ds.ghost.style.top = (ev.clientY - offY) + 'px';
+
+      // Highlight col sous le curseur
+      ds.ghost.style.display = 'none';
+      const el = document.elementFromPoint(ev.clientX, ev.clientY);
+      ds.ghost.style.display = '';
+      let target = el;
+      let foundCol = null;
+      while(target) {
+        if(target.dataset && target.dataset.kbcol) { foundCol = target.dataset.kbcol; break; }
+        target = target.parentElement;
       }
-      ghost.style.left=(e.clientX-80)+'px';
-      ghost.style.top=(e.clientY-20)+'px';
-      
-      document.querySelectorAll('[data-col]').forEach(c=>c.style.background='');
-      const col=getColAtPoint(e.clientX,e.clientY);
-      if(col){
-        const el=document.querySelector('[data-col="'+col+'"]');
-        if(el) el.style.background='rgba(59,130,246,0.08)';
-      }
+      document.querySelectorAll('[data-kbcol]').forEach(c => {
+        c.style.outline = c.dataset.kbcol === foundCol ? '2px solid #3b82f6' : '';
+        c.style.background = c.dataset.kbcol === foundCol ? 'rgba(59,130,246,0.06)' : '';
+      });
     }
-    
-    function onMouseUp(e){
-      if(!dragging) return;
-      
-      if(ghost){ ghost.remove(); ghost=null; }
-      const card=document.querySelector('[data-id="'+dragging+'"]');
-      if(card) card.style.opacity='';
-      document.querySelectorAll('[data-col]').forEach(c=>c.style.background='');
-      
-      if(moved){
-        const col=getColAtPoint(e.clientX,e.clientY);
-        if(col&&draggingType==="lead"){
-          setLeads(prev=>prev.map(l=>l.id===dragging?{...l,column:col}:l));
-          addToast("Lead déplacé","success");
-        } else if(col&&draggingType==="client"){
-          setClients(prev=>prev.map(c=>c.id===dragging?{...c,column:col,lastActivity:new Date().toISOString()}:c));
-          addToast("Client déplacé","success");
+
+    function onUp(ev) {
+      document.removeEventListener('mousemove', onMove);
+      document.removeEventListener('mouseup', onUp);
+
+      if(ds.ghost) { ds.ghost.remove(); ds.ghost = null; }
+      card.style.opacity = '';
+      document.querySelectorAll('[data-kbcol]').forEach(c => { c.style.outline=''; c.style.background=''; });
+
+      if(ds.active && ds.id) {
+        ds.ghost && ds.ghost.remove();
+        let el = document.elementFromPoint(ev.clientX, ev.clientY);
+        let col = null;
+        while(el) {
+          if(el.dataset && el.dataset.kbcol) { col = el.dataset.kbcol; break; }
+          el = el.parentElement;
+        }
+        if(col) {
+          if(ds.type === 'lead') {
+            setLeads(prev => prev.map(l => l.id===ds.id ? {...l, column:col} : l));
+            storage.set('s6_leads', leads.map(l => l.id===ds.id ? {...l, column:col} : l));
+          } else if(ds.type === 'client') {
+            setClients(prev => prev.map(c => c.id===ds.id ? {...c, column:col, lastActivity:new Date().toISOString()} : c));
+          }
         }
       }
-      
-      dragging=null; moved=false;
+      ds.id = null; ds.type = null; ds.active = false;
     }
-    
-    const timer=setTimeout(()=>{
-      document.querySelectorAll('.kb-card[data-id]').forEach(card=>{
-        card.style.cursor='grab';
-        card.onmousedown=onMouseDown;
-      });
-      document.addEventListener('mousemove',onMouseMove);
-      document.addEventListener('mouseup',onMouseUp);
-    },200);
-    
-    return()=>{
-      clearTimeout(timer);
-      document.removeEventListener('mousemove',onMouseMove);
-      document.removeEventListener('mouseup',onMouseUp);
-      if(ghost){ghost.remove();ghost=null;}
-    };
-  },[page,leads,clients]);
-  // ───────────────────────────────────────────────────────────────
+
+    document.addEventListener('mousemove', onMove);
+    document.addEventListener('mouseup', onUp);
+  }, [leads]);
+  // ─────────────────────────────────────────────────────────────
 
   // ──────────────────────────────────────────────────────────────────────────
   return(
@@ -914,10 +768,7 @@ function App(){
                   {LEAD_COLS.map(col=>{
                     const colLeads=filteredLeads.filter(l=>l.column===col.id);
                     return(
-                      <div key={col.id} className={"kb-col"+(dragOver===col.id?" drag-over":"")}
-                        data-col={col.id} onDragOver={e=>{e.preventDefault();e.dataTransfer.dropEffect="move";setDragOver(col.id);}}
-                        onDragLeave={()=>setDragOver(null)}
-                        onDrop={e=>onDrop(e,col.id)}
+                      <div key={col.id} className={"kb-col"} data-kbcol={col.id}
                         style={{borderTop:`3px solid ${col.color}`}}>
                         <div className="kb-col-hd"><div className="kb-col-title" style={{color:col.color}}>{col.label}</div><span className="kb-count">{colLeads.length}</span></div>
                         {(col.id==="relance1"||col.id==="relance2")&&(<div style={{fontSize:10,color:"var(--text3)",background:"var(--orange-bg)",borderRadius:6,padding:"3px 8px",marginBottom:8,fontWeight:500,textAlign:"center"}}>📅 +{col.id==="relance1"?"3":"7"}j ouvré auto</div>)}
@@ -925,8 +776,7 @@ function App(){
                           const urg=leadUrgency(lead);
                           return(
                             <div key={lead.id}
-                              className={"kb-card"+(urg==="red"?" urgent":urg==="orange"?" warn":lead.relanceApptId?" relance-sched":"")}
-                              draggable data-id={lead.id} data-type="lead" onDragStart={e=>onDragStart(e,lead.id,"lead")}>
+                              className={"kb-card"+(urg==="red"?" urgent":urg==="orange"?" warn":lead.relanceApptId?" relance-sched":"")} onMouseDown={e=>startDrag(e,lead.id,"lead")} style={{cursor:"grab"}}>
                               <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start"}}>
                                 <div className="kb-card-name">{lead.name}</div>
                                 <button className="ib" style={{padding:2,marginTop:-2}} onClick={()=>{setSelectedLead(lead);setModal("leadHistory");}}><Ic n="history" s={12}/></button>
@@ -975,15 +825,12 @@ function App(){
                     {PROD_COLS.map(col=>{
                       const cc=filteredClients.filter(c=>c.column===col.id);
                       return(
-                        <div key={col.id} className={"kb-col"+(dragOver===col.id?" drag-over":"")}
-                          data-col={col.id} onDragOver={e=>{e.preventDefault();e.dataTransfer.dropEffect="move";setDragOver(col.id);}}
-                          onDragLeave={()=>setDragOver(null)}
-                          onDrop={e=>onDrop(e,col.id)}
+                        <div key={col.id} className={"kb-col"} data-kbcol={col.id}
                           style={{borderTop:`3px solid ${col.color}`}}>
                           <div className="kb-col-hd"><div className="kb-col-title" style={{color:col.color}}>{col.label}</div><span className="kb-count">{cc.length}</span></div>
                           {cc.map(cl=>{
                             const inactive=daysSince(cl.lastActivity)>=7;
-                            return(<div key={cl.id} className={"prod-card"+(inactive?" inactive":"")} draggable data-id={cl.id} data-type="client" onDragStart={e=>onDragStart(e,cl.id,"client")} onClick={()=>{setSelectedClient({...cl});setModal("fiche");}}>
+                            return(<div key={cl.id} className={"prod-card"+(inactive?" inactive":"")} onMouseDown={e=>startDrag(e,cl.id,"client")} onClick={()=>{setSelectedClient({...cl});setModal("fiche");}} style={{cursor:"grab"}}>
                               <div style={{fontWeight:700,fontSize:13,color:"var(--text)",marginBottom:2}}>{cl.name}</div>
                               <div style={{marginBottom:5}}><a className="tel-link" href={"tel:"+(cl.phone||"").replace(/\s/g,"")} onClick={e=>e.stopPropagation()}><Ic n="phone" s={10}/>{cl.phone}</a></div>
                               <div style={{display:"flex",flexWrap:"wrap",gap:3,marginBottom:inactive?5:0}}>
