@@ -649,6 +649,67 @@ function App(){
   const exportLeads=()=>exportCSV(leads.map(l=>({Nom:l.name,Téléphone:l.phone,Email:l.email,Source:l.source,Statut:LEAD_COLS.find(c=>c.id===l.column)?.label||l.column,Notes:l.notes})),"soloc_leads.csv");
   const exportClients=()=>exportCSV(clients.map(c=>({Nom:c.name,Téléphone:c.phone,Email:c.email,Statut:PROD_COLS.find(x=>x.id===c.column)?.label||c.column,Type:c.criteria.type,Budget:c.criteria.budgetMax,Secteurs:c.criteria.sectors,Profil:c.criteria.profile,Revenus:c.criteria.revenues,Notes:c.notes})),"soloc_clients.csv");
 
+
+  // ── DRAG & DROP NATIF ──────────────────────────────────────────
+  useEffect(()=>{
+    let draggingId=null, draggingType=null;
+    
+    function handleDragStart(e){
+      const card=e.currentTarget;
+      draggingId=card.dataset.id;
+      draggingType=card.dataset.type;
+      dragItem.current=draggingId;
+      dragType.current=draggingType;
+      e.dataTransfer.setData('text/plain',draggingId);
+      e.dataTransfer.effectAllowed='move';
+      setTimeout(()=>card.style.opacity='0.4',0);
+    }
+    function handleDragEnd(e){
+      e.currentTarget.style.opacity='';
+      document.querySelectorAll('.kb-col').forEach(c=>c.classList.remove('drag-over'));
+    }
+    function handleDragOver(e){
+      e.preventDefault();
+      e.dataTransfer.dropEffect='move';
+      e.currentTarget.classList.add('drag-over');
+    }
+    function handleDragLeave(e){
+      e.currentTarget.classList.remove('drag-over');
+    }
+    function handleDrop(e){
+      e.preventDefault();
+      const col=e.currentTarget.dataset.col;
+      e.currentTarget.classList.remove('drag-over');
+      if(!draggingId||!col)return;
+      // Simuler le onDrop React
+      const syntheticE={preventDefault:()=>{},stopPropagation:()=>{},dataTransfer:{getData:()=>draggingId}};
+      onDrop(syntheticE,col);
+      draggingId=null;draggingType=null;
+    }
+    
+    function attach(){
+      document.querySelectorAll('.kb-card[data-id]').forEach(card=>{
+        card.removeEventListener('dragstart',handleDragStart);
+        card.removeEventListener('dragend',handleDragEnd);
+        card.addEventListener('dragstart',handleDragStart);
+        card.addEventListener('dragend',handleDragEnd);
+      });
+      document.querySelectorAll('.kb-col[data-col]').forEach(col=>{
+        col.removeEventListener('dragover',handleDragOver);
+        col.removeEventListener('dragleave',handleDragLeave);
+        col.removeEventListener('drop',handleDrop);
+        col.addEventListener('dragover',handleDragOver);
+        col.addEventListener('dragleave',handleDragLeave);
+        col.addEventListener('drop',handleDrop);
+      });
+    }
+    
+    // Attacher immédiatement et après chaque changement de page
+    const timer=setTimeout(attach,100);
+    return()=>clearTimeout(timer);
+  },[page,leads,clients]);
+  // ───────────────────────────────────────────────────────────────
+
   // ──────────────────────────────────────────────────────────────────────────
   return(
     <>
@@ -820,7 +881,7 @@ function App(){
                     const colLeads=filteredLeads.filter(l=>l.column===col.id);
                     return(
                       <div key={col.id} className={"kb-col"+(dragOver===col.id?" drag-over":"")}
-                        onDragOver={e=>{e.preventDefault();e.dataTransfer.dropEffect="move";setDragOver(col.id);}}
+                        data-col={col.id} onDragOver={e=>{e.preventDefault();e.dataTransfer.dropEffect="move";setDragOver(col.id);}}
                         onDragLeave={()=>setDragOver(null)}
                         onDrop={e=>onDrop(e,col.id)}
                         style={{borderTop:`3px solid ${col.color}`}}>
@@ -831,7 +892,7 @@ function App(){
                           return(
                             <div key={lead.id}
                               className={"kb-card"+(urg==="red"?" urgent":urg==="orange"?" warn":lead.relanceApptId?" relance-sched":"")}
-                              draggable onDragStart={e=>onDragStart(e,lead.id,"lead")}>
+                              draggable data-id={lead.id} data-type="lead" onDragStart={e=>onDragStart(e,lead.id,"lead")}>
                               <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start"}}>
                                 <div className="kb-card-name">{lead.name}</div>
                                 <button className="ib" style={{padding:2,marginTop:-2}} onClick={()=>{setSelectedLead(lead);setModal("leadHistory");}}><Ic n="history" s={12}/></button>
@@ -881,14 +942,14 @@ function App(){
                       const cc=filteredClients.filter(c=>c.column===col.id);
                       return(
                         <div key={col.id} className={"kb-col"+(dragOver===col.id?" drag-over":"")}
-                          onDragOver={e=>{e.preventDefault();e.dataTransfer.dropEffect="move";setDragOver(col.id);}}
+                          data-col={col.id} onDragOver={e=>{e.preventDefault();e.dataTransfer.dropEffect="move";setDragOver(col.id);}}
                           onDragLeave={()=>setDragOver(null)}
                           onDrop={e=>onDrop(e,col.id)}
                           style={{borderTop:`3px solid ${col.color}`}}>
                           <div className="kb-col-hd"><div className="kb-col-title" style={{color:col.color}}>{col.label}</div><span className="kb-count">{cc.length}</span></div>
                           {cc.map(cl=>{
                             const inactive=daysSince(cl.lastActivity)>=7;
-                            return(<div key={cl.id} className={"prod-card"+(inactive?" inactive":"")} draggable onDragStart={e=>onDragStart(e,cl.id,"client")} onClick={()=>{setSelectedClient({...cl});setModal("fiche");}}>
+                            return(<div key={cl.id} className={"prod-card"+(inactive?" inactive":"")} draggable data-id={cl.id} data-type="client" onDragStart={e=>onDragStart(e,cl.id,"client")} onClick={()=>{setSelectedClient({...cl});setModal("fiche");}}>
                               <div style={{fontWeight:700,fontSize:13,color:"var(--text)",marginBottom:2}}>{cl.name}</div>
                               <div style={{marginBottom:5}}><a className="tel-link" href={"tel:"+(cl.phone||"").replace(/\s/g,"")} onClick={e=>e.stopPropagation()}><Ic n="phone" s={10}/>{cl.phone}</a></div>
                               <div style={{display:"flex",flexWrap:"wrap",gap:3,marginBottom:inactive?5:0}}>
