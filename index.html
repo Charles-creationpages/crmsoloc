@@ -1353,7 +1353,7 @@ function ManualNoteForm({lead, onSave}){
 }
 // ── API PARTENAIRES ──────────────────────────────────────────────────────
 const PARTNERS_API = 'https://script.google.com/macros/s/AKfycbyPQFA-DM8doJkjDp3oc8J9s-BFn2X6QQtaeshYkC1z5HwGkIVsflFl8vPh5kHXTchwlw/exec';
-async function pGet(){try{const r=await fetch(PARTNERS_API);return r.json();}catch{return [];}}
+async function pGet(){try{const r=await fetch(PARTNERS_API);const data=await r.json();return Array.isArray(data)?data.map(p=>({id:p.id||'',agence:p.agence||'',nom:p.nom||'',prenom:p.prenom||'',email:p.email||'',telephone:p.telephone||''})):[];}catch{return [];}}
 async function pPost(data){await fetch(PARTNERS_API,{method:'POST',mode:'no-cors',headers:{'Content-Type':'application/json'},body:JSON.stringify(data)});}
 
 // ── PARTNER MODAL ────────────────────────────────────────────────────────
