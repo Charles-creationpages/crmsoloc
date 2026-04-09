@@ -1295,7 +1295,7 @@ function App() {
     dragItem.current = id;
     dragType.current = type;
     e.dataTransfer.effectAllowed = "move";
-    e.dataTransfer.setData("text/plain", id + "|" + type);
+    e.dataTransfer.setData("text", id + "|" + type);
   };
   const onDrop = async (e, col) => {
     e.preventDefault();
@@ -1643,53 +1643,41 @@ function App() {
     Notes: c.notes
   })), "soloc_clients.csv");
 
-  // ── DRAG NATIF (React 18 fix) ─────────────────────────────
+  // ── DRAG NATIF ────────────────────────────────────────────
   useEffect(() => {
-    const cols = document.querySelectorAll('[data-kbcol]');
-    const handlers = [];
-    cols.forEach(col => {
-      const colId = col.dataset.kbcol;
-      const over = e => {
-        e.preventDefault();
-        e.stopPropagation();
-        col.style.outline = '2px solid #3b82f6';
-      };
-      const leave = () => {
-        col.style.outline = '';
-      };
-      const drop = e => {
-        e.preventDefault();
-        e.stopPropagation();
-        col.style.outline = '';
-        const data = e.dataTransfer.getData('text/plain');
-        if (!data) return;
-        const [id, type] = data.split('|');
-        dragItem.current = id;
-        dragType.current = type;
-        onDrop(e, colId);
-      };
-      col.addEventListener('dragover', over);
-      col.addEventListener('dragleave', leave);
-      col.addEventListener('drop', drop);
-      handlers.push({
-        col,
-        over,
-        leave,
-        drop
+    function attach() {
+      document.querySelectorAll('[data-kbcol]').forEach(col => {
+        const colId = col.dataset.kbcol;
+        col.ondragover = e => {
+          e.preventDefault();
+          col.classList.add('drag-over');
+        };
+        col.ondragleave = () => col.classList.remove('drag-over');
+        col.ondrop = e => {
+          e.preventDefault();
+          col.classList.remove('drag-over');
+          const data = e.dataTransfer.getData('text');
+          if (!data) return;
+          const [id, type] = data.split('|');
+          dragItem.current = id;
+          dragType.current = type;
+          if (type === 'lead') {
+            setLeads(prev => prev.map(l => l.id === id ? {
+              ...l,
+              column: colId
+            } : l));
+          } else {
+            setClients(prev => prev.map(c => c.id === id ? {
+              ...c,
+              column: colId,
+              lastActivity: new Date().toISOString()
+            } : c));
+          }
+        };
       });
-    });
-    return () => {
-      handlers.forEach(({
-        col,
-        over,
-        leave,
-        drop
-      }) => {
-        col.removeEventListener('dragover', over);
-        col.removeEventListener('dragleave', leave);
-        col.removeEventListener('drop', drop);
-      });
-    };
+    }
+    const t = setTimeout(attach, 50);
+    return () => clearTimeout(t);
   });
   // ─────────────────────────────────────────────────────────
 
@@ -4473,7 +4461,6 @@ function PartenairesPage() {
     }
   }, pToast));
 }
-
     const domNode = document.getElementById('root');
     const root = ReactDOM.createRoot(domNode);
     root.render(React.createElement(App));
