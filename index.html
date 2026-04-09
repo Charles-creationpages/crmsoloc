@@ -1643,6 +1643,56 @@ function App() {
     Notes: c.notes
   })), "soloc_clients.csv");
 
+  // ── DRAG NATIF (React 18 fix) ─────────────────────────────
+  useEffect(() => {
+    const cols = document.querySelectorAll('[data-kbcol]');
+    const handlers = [];
+    cols.forEach(col => {
+      const colId = col.dataset.kbcol;
+      const over = e => {
+        e.preventDefault();
+        e.stopPropagation();
+        col.style.outline = '2px solid #3b82f6';
+      };
+      const leave = () => {
+        col.style.outline = '';
+      };
+      const drop = e => {
+        e.preventDefault();
+        e.stopPropagation();
+        col.style.outline = '';
+        const data = e.dataTransfer.getData('text/plain');
+        if (!data) return;
+        const [id, type] = data.split('|');
+        dragItem.current = id;
+        dragType.current = type;
+        onDrop(e, colId);
+      };
+      col.addEventListener('dragover', over);
+      col.addEventListener('dragleave', leave);
+      col.addEventListener('drop', drop);
+      handlers.push({
+        col,
+        over,
+        leave,
+        drop
+      });
+    });
+    return () => {
+      handlers.forEach(({
+        col,
+        over,
+        leave,
+        drop
+      }) => {
+        col.removeEventListener('dragover', over);
+        col.removeEventListener('dragleave', leave);
+        col.removeEventListener('drop', drop);
+      });
+    };
+  });
+  // ─────────────────────────────────────────────────────────
+
   // ──────────────────────────────────────────────────────────────────────────
   return /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("div", {
     className: "app"
@@ -2268,12 +2318,7 @@ function App() {
     return /*#__PURE__*/React.createElement("div", {
       key: col.id,
       className: `kb-col ${dragOver === col.id ? "drag-over" : ""}`,
-      onDragOver: e => {
-        e.preventDefault();
-        setDragOver(col.id);
-      },
-      onDragLeave: () => setDragOver(null),
-      onDrop: e => onDrop(e, col.id),
+      "data-kbcol": col.id,
       style: {
         borderTop: `3px solid ${col.color}`
       }
@@ -2462,12 +2507,7 @@ function App() {
     return /*#__PURE__*/React.createElement("div", {
       key: col.id,
       className: `kb-col ${dragOver === col.id ? "drag-over" : ""}`,
-      onDragOver: e => {
-        e.preventDefault();
-        setDragOver(col.id);
-      },
-      onDragLeave: () => setDragOver(null),
-      onDrop: e => onDrop(e, col.id),
+      "data-kbcol": col.id,
       style: {
         borderTop: `3px solid ${col.color}`
       }
