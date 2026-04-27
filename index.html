@@ -425,18 +425,18 @@ function App(){
   // ── PERSIST — storage first, seeds only if empty ──
   const saveEnabled=useRef(false);
   useEffect(()=>{(async()=>{
-    const l=await storage.get("s6_leads");
-    const c=await storage.get("s6_clients");
-    const a=await storage.get("s6_appts");
+    const l=await storage.get("leads");
+    const c=await storage.get("clients");
+    const a=await storage.get("appts");
     setLeads(l&&l.length?l:SEED_LEADS);
     setClients(c&&c.length?c:SEED_CLIENTS);
     setAppts(a&&a.length?a:SEED_APPOINTMENTS);
     setLoaded(true);
     setTimeout(()=>{saveEnabled.current=true;},200);
   })();},[]);
-  useEffect(()=>{if(saveEnabled.current)storage.set("s6_leads",leads);},[leads]);
-  useEffect(()=>{if(saveEnabled.current)storage.set("s6_clients",clients);},[clients]);
-  useEffect(()=>{if(saveEnabled.current)storage.set("s6_appts",appts);},[appts]);
+  useEffect(()=>{if(saveEnabled.current)storage.set("leads",leads);},[leads]);
+  useEffect(()=>{if(saveEnabled.current)storage.set("clients",clients);},[clients]);
+  useEffect(()=>{if(saveEnabled.current)storage.set("appts",appts);},[appts]);
 
   // ── BACKUP ──
   const doBackup = useCallback((manual=false) => {
@@ -453,14 +453,14 @@ function App(){
     a.download = "soloc-backup-"+date+".json";
     a.click();
     URL.revokeObjectURL(url);
-    storage.set("s6_lastBackup", new Date().toISOString());
+    storage.set("lastBackup", new Date().toISOString());
     if(manual) addToast("💾 Sauvegarde téléchargée","success");
   }, [leads, clients, appts]);
 
   useEffect(()=>{
     if(!loaded) return;
     (async()=>{
-      const last = await storage.get("s6_lastBackup");
+      const last = await storage.get("lastBackup");
       const lastDate = last ? new Date((last.value||"").replace(/"/g,"")) : null;
       const daysSinceLast = lastDate ? (Date.now()-lastDate.getTime())/86400000 : 999;
       if(daysSinceLast >= 7){
