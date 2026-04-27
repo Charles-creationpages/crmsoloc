@@ -11,7 +11,9 @@
 </head>
 <body>
   <div id="root"></div>
-  <script type="text/babel" data-presets="react">
+  <script>
+    const { useState, useEffect, useRef, useCallback } = React;
+
 const { useState, useEffect, useRef, useCallback } = React;
 
 
@@ -645,6 +647,35 @@ function App(){
   // ── EXPORT HELPERS ──
   const exportLeads=()=>exportCSV(leads.map(l=>({Nom:l.name,Téléphone:l.phone,Email:l.email,Source:l.source,Statut:LEAD_COLS.find(c=>c.id===l.column)?.label||l.column,Notes:l.notes})),"soloc_leads.csv");
   const exportClients=()=>exportCSV(clients.map(c=>({Nom:c.name,Téléphone:c.phone,Email:c.email,Statut:PROD_COLS.find(x=>x.id===c.column)?.label||c.column,Type:c.criteria.type,Budget:c.criteria.budgetMax,Secteurs:c.criteria.sectors,Profil:c.criteria.profile,Revenus:c.criteria.revenues,Notes:c.notes})),"soloc_clients.csv");
+
+
+  // ── DRAG NATIF ────────────────────────────────────────────
+  useEffect(()=>{
+    function attach(){
+      document.querySelectorAll('[data-kbcol]').forEach(col=>{
+        const colId=col.dataset.kbcol;
+        col.ondragover=e=>{e.preventDefault();col.classList.add('drag-over');};
+        col.ondragleave=()=>col.classList.remove('drag-over');
+        col.ondrop=e=>{
+          e.preventDefault();
+          col.classList.remove('drag-over');
+          const data=e.dataTransfer.getData('text');
+          if(!data)return;
+          const[id,type]=data.split('|');
+          dragItem.current=id;
+          dragType.current=type;
+          if(type==='lead'){
+            setLeads(prev=>prev.map(l=>l.id===id?{...l,column:colId}:l));
+          } else {
+            setClients(prev=>prev.map(c=>c.id===id?{...c,column:colId,lastActivity:new Date().toISOString()}:c));
+          }
+        };
+      });
+    }
+    const t=setTimeout(attach,50);
+    return()=>clearTimeout(t);
+  });
+  // ─────────────────────────────────────────────────────────
 
   // ──────────────────────────────────────────────────────────────────────────
   return(
