@@ -482,7 +482,7 @@ function App(){
   // ── STATS ──
   const activeSearching=clients.filter(c=>["searching","visit","dossier"].includes(c.column)).length;
   const loggedThisMonth=clients.filter(c=>["signed","paid"].includes(c.column)&&hoursSince(c.enteredAt)<=(31*24)).length;
-  const pendingCA=clients.filter(c=>c.column==="signed").length*1200;
+  const pendingCA=clients.filter(c=>c.column==="signed").reduce((s,c)=>s+(parseFloat(c.prestation)||0),0);
   const leadsThisWeek=leads.filter(l=>l.column!=="lost"&&hoursSince(l.enteredAt)<=168).length;
 
   // ── CONVERSION STATS ──
@@ -1246,6 +1246,10 @@ function App(){
             </div>
             <div className="fr">
               <div className="fg"><label className="fl">Email</label><input className="fi" value={selectedClient.email} onChange={e=>setSelectedClient(p=>({...p,email:e.target.value}))}/></div>
+              <div className="fg">
+                <label className="fl">Prestation (€)</label>
+                <input className="fi" type="number" placeholder="890" value={selectedClient.prestation||""} onChange={e=>setSelectedClient(p=>({...p,prestation:e.target.value}))}/>
+              </div>
               <div className="fg">
                 <label className="fl">Statut</label>
                 <select className="fi" value={selectedClient.column} onChange={e=>setSelectedClient(p=>({...p,column:e.target.value}))}>
