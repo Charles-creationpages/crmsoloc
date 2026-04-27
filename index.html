@@ -381,6 +381,147 @@ const exportCSV = (data, filename) => {
 };
 
 // ══════════════════════════════════════════════════════════════════════════
+function DiffusionPage({contacts, setContacts, onNewAnnonce, addToast}){
+  const [showAdd, setShowAdd] = useState(false);
+  const [newContact, setNewContact] = useState({nom:"", email:""});
+  const [search, setSearch] = useState("");
+  const [importing, setImporting] = useState(false);
+  const fileRef = useRef(null);
+
+  const addContact = () => {
+    if(!newContact.email.includes("@")){addToast("Email invalide","error");return;}
+    if(contacts.find(c=>c.email.toLowerCase()===newContact.email.toLowerCase())){addToast("Contact déjà présent","error");return;}
+    setContacts(p=>[...p,{id:"d"+Date.now(),nom:newContact.nom,email:newContact.email.toLowerCase()}]);
+    setNewContact({nom:"",email:""});
+    setShowAdd(false);
+    addToast("✓ Contact ajouté","success");
+  };
+
+  const deleteContact = (id) => {
+    if(confirm("Supprimer ce contact ?")) setContacts(p=>p.filter(c=>c.id!==id));
+  };
+
+  const importExcel = (e) => {
+    const file = e.target.files[0];
+    if(!file) return;
+    setImporting(true);
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      try{
+        const text = ev.target.result;
+        const lines = text.split(/\r?\n/).filter(Boolean);
+        let added = 0, skipped = 0;
+        const newOnes = [];
+        lines.forEach((line,i)=>{
+          const cols = line.split(/[;,\t]/);
+          if(i===0){
+            // detect header
+            const lower = cols.map(c=>c.toLowerCase().trim());
+            if(lower.some(c=>c.includes("email")||c.includes("mail"))) return;
+          }
+          // cherche email dans les colonnes
+          let email="", nom="";
+          cols.forEach(col=>{
+            col = col.trim().replace(/^"|"$/g,"");
+            if(col.includes("@")&&col.includes(".")) email=col.toLowerCase();
+            else if(!nom&&col.length>1) nom=col;
+          });
+          if(!email) return;
+          if(contacts.find(c=>c.email===email)||newOnes.find(c=>c.email===email)){skipped++;return;}
+          newOnes.push({id:"d"+Date.now()+Math.random(),nom,email});
+          added++;
+        });
+        setContacts(p=>[...p,...newOnes]);
+        addToast(`✓ ${added} contacts ajoutés, ${skipped} doublons ignorés`,"success");
+      }catch(err){
+        addToast("Erreur lecture fichier","error");
+      }finally{
+        setImporting(false);
+        e.target.value="";
+      }
+    };
+    reader.readAsText(file, "UTF-8");
+  };
+
+  const filtered = contacts.filter(c=>!search||c.nom.toLowerCase().includes(search.toLowerCase())||c.email.toLowerCase().includes(search.toLowerCase()));
+
+  const exportCSV = () => {
+    const rows = ["Nom,Email",...contacts.map(c=>`${c.nom},${c.email}`)].join("\n");
+    const b = new Blob([rows],{type:"text/csv;charset=utf-8;"});
+    const a = document.createElement("a");a.href=URL.createObjectURL(b);a.download="contacts-diffusion.csv";a.click();
+  };
+
+  return(
+    <div className="fade-in">
+      <div className="ph-row" style={{marginBottom:20}}>
+        <div>
+          <div className="pt">Diffusion <span>& Contacts</span></div>
+          <div className="ps">{contacts.length} contact{contacts.length!==1?"s":""} en liste — envoi automatique via Make</div>
+        </div>
+        <button className="btn btn-p" style={{fontSize:14,padding:"10px 20px"}} onClick={onNewAnnonce}>
+          <Ic n="send" s={14}/> Nouvelle annonce
+        </button>
+      </div>
+
+      <div style={{display:"flex",gap:10,marginBottom:16,flexWrap:"wrap",alignItems:"center"}}>
+        <input
+          style={{flex:1,minWidth:200,padding:"9px 13px",border:"1px solid var(--border)",borderRadius:8,fontFamily:"inherit",fontSize:13,background:"var(--surface)",color:"var(--text1)",outline:"none"}}
+          placeholder="🔍  Rechercher nom, email…"
+          value={search} onChange={e=>setSearch(e.target.value)}
+        />
+        <button className="btn btn-g" onClick={exportCSV}>⬇ Export CSV</button>
+        <button className="btn btn-g" onClick={()=>fileRef.current.click()} disabled={importing}>
+          📂 {importing?"Import…":"Import Excel / CSV"}
+        </button>
+        <input ref={fileRef} type="file" accept=".csv,.xlsx,.xls,.txt" style={{display:"none"}} onChange={importExcel}/>
+        <button className="btn btn-p" onClick={()=>setShowAdd(true)}><Ic n="plus" s={13}/>Ajouter</button>
+      </div>
+
+      {showAdd&&(
+        <div className="sc" style={{marginBottom:16,padding:16}}>
+          <div style={{fontWeight:700,fontSize:13,marginBottom:12,color:"var(--text1)"}}>Nouveau contact</div>
+          <div className="fr">
+            <div className="fg"><label className="fl">Nom</label><input className="fi" value={newContact.nom} onChange={e=>setNewContact(p=>({...p,nom:e.target.value}))} placeholder="Marie Dupont" autoFocus/></div>
+            <div className="fg"><label className="fl">Email</label><input className="fi" type="email" value={newContact.email} onChange={e=>setNewContact(p=>({...p,email:e.target.value}))} placeholder="marie@email.fr"/></div>
+          </div>
+          <div className="fa">
+            <button className="btn btn-g" onClick={()=>setShowAdd(false)}>Annuler</button>
+            <button className="btn btn-p" onClick={addContact}><Ic n="check" s={13}/>Ajouter</button>
+          </div>
+        </div>
+      )}
+
+      <div className="sc" style={{padding:0,overflow:"hidden"}}>
+        <div style={{display:"grid",gridTemplateColumns:"2fr 3fr 50px",padding:"9px 14px",background:"var(--bg2)",fontSize:11,fontWeight:800,textTransform:"uppercase",letterSpacing:"0.5px",color:"var(--text3)",borderBottom:"1px solid var(--border)"}}>
+          <div>Nom</div><div>Email</div><div></div>
+        </div>
+        {filtered.length===0&&(
+          <div style={{textAlign:"center",padding:"48px 20px",color:"var(--text3)"}}>
+            <div style={{fontSize:32,marginBottom:8}}>{contacts.length===0?"📬":"🔍"}</div>
+            <div style={{fontWeight:700,color:"var(--text1)",marginBottom:4}}>{contacts.length===0?"Aucun contact encore":"Aucun résultat"}</div>
+            <div style={{fontSize:12}}>{contacts.length===0?"Importe un fichier ou ajoute manuellement.":"Essaie un autre mot-clé."}</div>
+          </div>
+        )}
+        {filtered.map(c=>(
+          <div key={c.id}
+            style={{display:"grid",gridTemplateColumns:"2fr 3fr 50px",padding:"11px 14px",borderBottom:"1px solid var(--border)",alignItems:"center",fontSize:13,transition:"background 0.1s"}}
+            onMouseEnter={e=>e.currentTarget.style.background="var(--bg2)"}
+            onMouseLeave={e=>e.currentTarget.style.background=""}>
+            <div style={{fontWeight:600,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",paddingRight:8}}>{c.nom||"—"}</div>
+            <div style={{overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",paddingRight:8}}>
+              <a href={"mailto:"+c.email} style={{color:"var(--blue)",textDecoration:"none"}}>{c.email}</a>
+            </div>
+            <div style={{display:"flex",justifyContent:"flex-end"}}>
+              <button className="ib" style={{color:"var(--red)"}} onClick={()=>deleteContact(c.id)}><Ic n="trash" s={13}/></button>
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+// ══════════════════════════════════════════════════════════════════════════
 function App(){
   const [page,setPage]=useState("dashboard");
   const [leads,setLeads]=useState([]);
@@ -396,6 +537,12 @@ function App(){
   const [dragOver,setDragOver]=useState(null);
   const [search,setSearch]=useState("");
   const [toasts,setToasts]=useState([]);
+  const [diffContacts,setDiffContacts]=useState([]);
+  const [diffModal,setDiffModal]=useState(false);
+  const [annonce,setAnnonce]=useState({type:"",surface:"",loyer:"",secteur:"",meuble:false,balcon:false,parking:false,dispo:"asap",dispoDate:"",wetransfer:"",description:"",depotGarantie:"",fraisAgence:"",fraisSoloc:""});
+  const [annonceLoading,setAnnonceLoading]=useState(false);
+  const [annonceSuccess,setAnnonceSuccess]=useState(false);
+  const WEBHOOK_URL="https://hook.eu2.make.com/VOTRE_WEBHOOK_ICI";
 
   // Inject CSS
   useEffect(()=>{
@@ -431,12 +578,15 @@ function App(){
     setLeads(l&&l.length?l:SEED_LEADS);
     setClients(c&&c.length?c:SEED_CLIENTS);
     setAppts(a&&a.length?a:SEED_APPOINTMENTS);
+    const dc=await storage.get("diffContacts");
+    setDiffContacts(dc&&dc.length?dc:[]);
     setLoaded(true);
     setTimeout(()=>{saveEnabled.current=true;},200);
   })();},[]);
   useEffect(()=>{if(saveEnabled.current)storage.set("leads",leads);},[leads]);
   useEffect(()=>{if(saveEnabled.current)storage.set("clients",clients);},[clients]);
   useEffect(()=>{if(saveEnabled.current)storage.set("appts",appts);},[appts]);
+  useEffect(()=>{if(saveEnabled.current)storage.set("diffContacts",diffContacts);},[diffContacts]);
 
   // ── BACKUP ──
   const doBackup = useCallback((manual=false) => {
@@ -697,6 +847,7 @@ function App(){
               {id:"agenda",icon:"calendar",label:"Agenda",badge:todayCount||null,bc:"blue"},
               {id:"stats",icon:"chart",label:"Statistiques",badge:null,bc:""},
               {id:"partenaires",icon:"users",label:"Partenaires",badge:null,bc:""},
+              {id:"diffusion",icon:"send",label:"Diffusion",badge:null,bc:""},
             ].map(n=>(
               <div key={n.id} className={"nav-item"+(page===n.id?" active":"")} onClick={()=>setPage(n.id)}>
                 <div className="nav-icon"><Ic n={n.icon} s={15}/></div>
@@ -1097,9 +1248,117 @@ function App(){
               </div>
             )}
 
+            {page==="diffusion"&&(
+              <DiffusionPage
+                contacts={diffContacts}
+                setContacts={setDiffContacts}
+                onNewAnnonce={()=>{setAnnonce({type:"",surface:"",loyer:"",secteur:"",meuble:false,balcon:false,parking:false,dispo:"asap",dispoDate:"",wetransfer:"",description:"",depotGarantie:"",fraisAgence:"",fraisSoloc:""});setAnnonceSuccess(false);setDiffModal(true);}}
+                addToast={addToast}
+              />
+            )}
+
           </div>
         </div>
       </div>
+
+      {/* MODAL ANNONCE DIFFUSION */}
+      {diffModal&&(
+        <div className="overlay" onClick={e=>e.target===e.currentTarget&&!annonceLoading&&setDiffModal(false)}>
+          <div className="modal wide fade-in" style={{maxWidth:620,maxHeight:"90vh",overflowY:"auto"}}>
+            <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:4}}>
+              <div className="modal-title" style={{marginBottom:0}}>🏠 Nouvelle annonce</div>
+              <button className="ib" onClick={()=>!annonceLoading&&setDiffModal(false)}><Ic n="x" s={18}/></button>
+            </div>
+            {annonceSuccess?(
+              <div style={{textAlign:"center",padding:"40px 20px"}}>
+                <div style={{fontSize:48,marginBottom:12}}>✅</div>
+                <div style={{fontWeight:800,fontSize:18,color:"var(--text1)",marginBottom:6}}>Annonce envoyée !</div>
+                <div style={{color:"var(--text3)",fontSize:13,marginBottom:24}}>Le webhook Make a bien reçu les informations.</div>
+                <button className="btn btn-p" onClick={()=>setDiffModal(false)}>Fermer</button>
+              </div>
+            ):(
+              <>
+                <div className="modal-section">Caractéristiques du bien</div>
+                <div className="fr">
+                  <div className="fg"><label className="fl">Type de bien</label><input className="fi" value={annonce.type} onChange={e=>setAnnonce(p=>({...p,type:e.target.value}))} placeholder="T2, T3, Studio…"/></div>
+                  <div className="fg"><label className="fl">Surface (m²)</label><input className="fi" type="number" value={annonce.surface} onChange={e=>setAnnonce(p=>({...p,surface:e.target.value}))} placeholder="45"/></div>
+                </div>
+                <div className="fr">
+                  <div className="fg"><label className="fl">Loyer CC (€/mois)</label><input className="fi" type="number" value={annonce.loyer} onChange={e=>setAnnonce(p=>({...p,loyer:e.target.value}))} placeholder="900"/></div>
+                  <div className="fg"><label className="fl">Secteur / Rue</label><input className="fi" value={annonce.secteur} onChange={e=>setAnnonce(p=>({...p,secteur:e.target.value}))} placeholder="Lyon 6e – Rue de Sèze"/></div>
+                </div>
+                <div className="fr" style={{gap:12,flexWrap:"wrap"}}>
+                  {[["meuble","Meublé"],["balcon","Balcon"],["parking","Parking / Garage"]].map(([k,l])=>(
+                    <label key={k} style={{display:"flex",alignItems:"center",gap:7,cursor:"pointer",fontSize:13,fontWeight:500,userSelect:"none"}}>
+                      <input type="checkbox" checked={annonce[k]} onChange={e=>setAnnonce(p=>({...p,[k]:e.target.checked}))} style={{width:15,height:15,accentColor:"var(--accent)"}}/>
+                      {l}
+                    </label>
+                  ))}
+                </div>
+                <div className="fr" style={{marginTop:4}}>
+                  <div className="fg">
+                    <label className="fl">Disponibilité</label>
+                    <select className="fi" value={annonce.dispo} onChange={e=>setAnnonce(p=>({...p,dispo:e.target.value}))}>
+                      <option value="asap">Dès que possible</option>
+                      <option value="date">À une date précise</option>
+                    </select>
+                  </div>
+                  {annonce.dispo==="date"&&(
+                    <div className="fg"><label className="fl">Date de disponibilité</label><input className="fi" type="date" value={annonce.dispoDate} onChange={e=>setAnnonce(p=>({...p,dispoDate:e.target.value}))}/></div>
+                  )}
+                </div>
+                <div className="fg" style={{marginTop:4}}>
+                  <label className="fl">Lien WeTransfer (photos / vidéos)</label>
+                  <input className="fi" value={annonce.wetransfer} onChange={e=>setAnnonce(p=>({...p,wetransfer:e.target.value}))} placeholder="https://we.tl/…"/>
+                </div>
+                <div className="fg">
+                  <label className="fl">Description libre</label>
+                  <textarea className="fi" rows={3} value={annonce.description} onChange={e=>setAnnonce(p=>({...p,description:e.target.value}))} placeholder="Appartement lumineux, double exposition, parquet…"/>
+                </div>
+                <div className="modal-section">Frais</div>
+                <div className="fr">
+                  <div className="fg"><label className="fl">Dépôt de garantie (€)</label><input className="fi" type="number" value={annonce.depotGarantie} onChange={e=>setAnnonce(p=>({...p,depotGarantie:e.target.value}))} placeholder="900"/></div>
+                  <div className="fg"><label className="fl">Frais d'agence (€)</label><input className="fi" type="number" value={annonce.fraisAgence} onChange={e=>setAnnonce(p=>({...p,fraisAgence:e.target.value}))} placeholder="500"/></div>
+                  <div className="fg"><label className="fl">Frais SOLOC' (€)</label><input className="fi" type="number" value={annonce.fraisSoloc} onChange={e=>setAnnonce(p=>({...p,fraisSoloc:e.target.value}))} placeholder="890"/></div>
+                </div>
+                <div style={{display:"flex",alignItems:"center",justifyContent:"flex-end",gap:8,padding:"10px 0 4px",borderTop:"1px solid var(--border)",marginTop:4}}>
+                  <span style={{fontSize:13,color:"var(--text2)",fontWeight:600}}>Total frais client :</span>
+                  <span style={{fontSize:16,fontWeight:800,color:"var(--accent)"}}>
+                    {((parseFloat(annonce.fraisAgence)||0)+(parseFloat(annonce.fraisSoloc)||0)).toLocaleString("fr-FR")} €
+                  </span>
+                </div>
+                <div className="fa" style={{marginTop:8}}>
+                  <div style={{fontSize:12,color:"var(--text3)",alignSelf:"center"}}>{diffContacts.length} contact{diffContacts.length!==1?"s":""} en liste</div>
+                  <button className="btn btn-g" onClick={()=>!annonceLoading&&setDiffModal(false)}>Annuler</button>
+                  <button className="btn btn-p" disabled={annonceLoading||diffContacts.length===0||!annonce.loyer} onClick={async()=>{
+                    setAnnonceLoading(true);
+                    try{
+                      const payload={
+                        annonce:{
+                          ...annonce,
+                          dispoLabel:annonce.dispo==="asap"?"Dès que possible":annonce.dispoDate,
+                          totalFrais:(parseFloat(annonce.fraisAgence)||0)+(parseFloat(annonce.fraisSoloc)||0),
+                        },
+                        contacts:diffContacts,
+                        sentAt:new Date().toISOString(),
+                      };
+                      await fetch(WEBHOOK_URL,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(payload)});
+                      setAnnonceSuccess(true);
+                      addToast("✓ Annonce envoyée à "+diffContacts.length+" contacts","success");
+                    }catch(e){
+                      addToast("Erreur envoi webhook","error");
+                    }finally{
+                      setAnnonceLoading(false);
+                    }
+                  }}>
+                    {annonceLoading?"Envoi…":"📤 Envoyer ("+diffContacts.length+")"}
+                  </button>
+                </div>
+              </>
+            )}
+          </div>
+        </div>
+      )}
 
       {/* MODAL LEAD */}
       {modal==="lead" && (
