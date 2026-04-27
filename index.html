@@ -423,6 +423,7 @@ function App(){
   },[]);
 
   // ── PERSIST — storage first, seeds only if empty ──
+  const saveEnabled=useRef(false);
   useEffect(()=>{(async()=>{
     const l=await storage.get("s6_leads");
     const c=await storage.get("s6_clients");
@@ -431,10 +432,11 @@ function App(){
     setClients(c&&c.length?c:SEED_CLIENTS);
     setAppts(a&&a.length?a:SEED_APPOINTMENTS);
     setLoaded(true);
+    setTimeout(()=>{saveEnabled.current=true;},200);
   })();},[]);
-  useEffect(()=>{if(loaded)storage.set("s6_leads",leads);},[leads,loaded]);
-  useEffect(()=>{if(loaded)storage.set("s6_clients",clients);},[clients,loaded]);
-  useEffect(()=>{if(loaded)storage.set("s6_appts",appts);},[appts,loaded]);
+  useEffect(()=>{if(saveEnabled.current)storage.set("s6_leads",leads);},[leads]);
+  useEffect(()=>{if(saveEnabled.current)storage.set("s6_clients",clients);},[clients]);
+  useEffect(()=>{if(saveEnabled.current)storage.set("s6_appts",appts);},[appts]);
 
   // ── BACKUP ──
   const doBackup = useCallback((manual=false) => {
