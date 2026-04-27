@@ -6,14 +6,11 @@
   <title>SOLOC' CRM</title>
   <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
   <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
-  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
   <style>body{margin:0;padding:0;background:#EEF3F8;}</style>
 </head>
 <body>
   <div id="root"></div>
   <script>
-    const { useState, useEffect, useRef, useCallback } = React;
-
 const { useState, useEffect, useRef, useCallback } = React;
 
 
@@ -21,8 +18,8 @@ const GCAL = { CLIENT_ID:"YOUR_CLIENT_ID.apps.googleusercontent.com", API_KEY:"Y
 
 // ─── STORAGE ───────────────────────────────────────────────────────────────
 const storage = {
-  async get(k){try{const r=localStorage.getItem("s7_"+k);return r?JSON.parse(r):null;}catch{return null;}},
-  async set(k,v){try{localStorage.setItem("s7_"+k,JSON.stringify(v));}catch{}}
+  async get(k){try{const r=localStorage.getItem("s6_"+k);return r?JSON.parse(r):null;}catch{return null;}},
+  async set(k,v){try{localStorage.setItem("s6_"+k,JSON.stringify(v));}catch{}}
 };
 
 // ─── DATE HELPERS ──────────────────────────────────────────────────────────
