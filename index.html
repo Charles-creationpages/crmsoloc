@@ -461,7 +461,7 @@ function App(){
     if(!loaded) return;
     (async()=>{
       const last = await storage.get("s6_lastBackup");
-      const lastDate = last ? new Date(last.value.replace(/"/g,"")) : null;
+      const lastDate = last ? new Date((last.value||"").replace(/"/g,"")) : null;
       const daysSinceLast = lastDate ? (Date.now()-lastDate.getTime())/86400000 : 999;
       if(daysSinceLast >= 7){
         // Small delay so app is fully rendered first
@@ -495,8 +495,8 @@ function App(){
 
   // ── SEARCH FILTER ──
   const q=search.toLowerCase();
-  const filteredLeads=leads.filter(l=>l.name.toLowerCase().includes(q)||l.phone.includes(q)||l.email.toLowerCase().includes(q));
-  const filteredClients=clients.filter(c=>c.name.toLowerCase().includes(q)||c.phone.includes(q)||c.email.toLowerCase().includes(q));
+  const filteredLeads=leads.filter(l=>(l.name||'').toLowerCase().includes(q)||(l.phone||'').includes(q)||(l.email||'').toLowerCase().includes(q));
+  const filteredClients=clients.filter(c=>(c.name||'').toLowerCase().includes(q)||(c.phone||'').includes(q)||(c.email||'').toLowerCase().includes(q));
 
   // ── DRAG & DROP ──
   const onDragStart=(e,id,type)=>{dragItem.current=id;dragType.current=type;};
@@ -1269,7 +1269,7 @@ function App(){
                 <label className="fl">Téléphone</label>
                 <div style={{display:"flex",gap:8,alignItems:"center"}}>
                   <input className="fi" value={selectedClient.phone} onChange={e=>setSelectedClient(p=>({...p,phone:e.target.value}))}/>
-                  <a className="tel-link" href={"tel:"+selectedClient.phone.replace(/\s/g,"")} style={{flexShrink:0,whiteSpace:"nowrap"}}><Ic n="phone" s={12}/>Appeler</a>
+                  <a className="tel-link" href={"tel:"+(selectedClient.phone||"").replace(/\s/g,"")} style={{flexShrink:0,whiteSpace:"nowrap"}}><Ic n="phone" s={12}/>Appeler</a>
                 </div>
               </div>
             </div>
