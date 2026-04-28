@@ -1338,6 +1338,7 @@ function App(){
                           ...annonce,
                           dispoLabel:annonce.dispo==="asap"?"Dès que possible":annonce.dispoDate,
                           totalFrais:(parseFloat(annonce.fraisAgence)||0)+(parseFloat(annonce.fraisSoloc)||0),
+                          totalGeneral:(parseFloat(annonce.fraisAgence)||0)+(parseFloat(annonce.fraisSoloc)||0)+(parseFloat(annonce.depotGarantie)||0),
                         },
                         contacts:diffContacts,
                         sentAt:new Date().toISOString(),
