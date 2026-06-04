@@ -649,7 +649,7 @@ function App(){
   const filteredClients=clients.filter(c=>(c.name||'').toLowerCase().includes(q)||(c.phone||'').includes(q)||(c.email||'').toLowerCase().includes(q));
 
   // ── DRAG & DROP ──
-  const onDragStart=(e,id,type)=>{dragItem.current=id;dragType.current=type;};
+  const onDragStart=(e,id,type)=>{dragItem.current=id;dragType.current=type;e.dataTransfer.setData('text',id+'|'+type);};
   const onDrop=async(e,col)=>{
     e.preventDefault();setDragOver(null);
     if(!dragItem.current)return;
@@ -1002,6 +1002,7 @@ function App(){
                         onDragOver={e=>{e.preventDefault();setDragOver(col.id);}}
                         onDragLeave={()=>setDragOver(null)}
                         onDrop={e=>onDrop(e,col.id)}
+                        data-kbcol={col.id}
                         style={{borderTop:`3px solid ${col.color}`}}>
                         <div className="kb-col-hd"><div className="kb-col-title" style={{color:col.color}}>{col.label}</div><span className="kb-count">{colLeads.length}</span></div>
                         {(col.id==="relance1"||col.id==="relance2")&&(<div style={{fontSize:10,color:"var(--text3)",background:"var(--orange-bg)",borderRadius:6,padding:"3px 8px",marginBottom:8,fontWeight:500,textAlign:"center"}}>📅 +{col.id==="relance1"?"3":"7"}j ouvré auto</div>)}
@@ -1063,6 +1064,7 @@ function App(){
                           onDragOver={e=>{e.preventDefault();setDragOver(col.id);}}
                           onDragLeave={()=>setDragOver(null)}
                           onDrop={e=>onDrop(e,col.id)}
+                          data-kbcol={col.id}
                           style={{borderTop:`3px solid ${col.color}`}}>
                           <div className="kb-col-hd"><div className="kb-col-title" style={{color:col.color}}>{col.label}</div><span className="kb-count">{cc.length}</span></div>
                           {cc.map(cl=>{
