@@ -632,7 +632,7 @@ function App(){
   // ── STATS ──
   const activeSearching=clients.filter(c=>["searching","visit","dossier"].includes(c.column)).length;
   const loggedThisMonth=clients.filter(c=>["signed","paid"].includes(c.column)&&hoursSince(c.enteredAt)<=(31*24)).length;
-  const pendingCA=clients.filter(c=>c.column==="signed").reduce((s,c)=>s+(parseFloat(c.prestation)||0),0);
+  const generatedCA=clients.filter(c=>["signed","paid"].includes(c.column)).reduce((s,c)=>s+(parseFloat(c.prestation)||0),0);
   const leadsThisWeek=leads.filter(l=>l.column!=="lost"&&hoursSince(l.enteredAt)<=168).length;
 
   // ── CONVERSION STATS ──
@@ -899,7 +899,7 @@ function App(){
                 <div className="kpi-grid">
                   <div className="kpi hl"><div className="kpi-ic"><Ic n="home" s={16}/></div><div className="kpi-lbl">En recherche active</div><div className="kpi-val">{activeSearching}</div><div className="kpi-sub">clients suivis</div></div>
                   <div className="kpi"><div className="kpi-ic" style={{background:"var(--green-bg)",color:"var(--green)"}}><Ic n="check" s={16}/></div><div className="kpi-lbl">Logés ce mois</div><div className="kpi-val">{loggedThisMonth}</div><div className="kpi-sub" style={{color:"var(--green)",fontWeight:600}}>↑ ce mois-ci</div></div>
-                  <div className="kpi"><div className="kpi-ic" style={{background:"var(--orange-bg)",color:"var(--orange)"}}><Ic n="euro" s={16}/></div><div className="kpi-lbl">CA en attente</div><div className="kpi-val">{pendingCA.toLocaleString("fr-FR")} €</div><div className="kpi-sub">bail signé</div></div>
+                  <div className="kpi"><div className="kpi-ic" style={{background:"var(--orange-bg)",color:"var(--orange)"}}><Ic n="euro" s={16}/></div><div className="kpi-lbl">CA généré</div><div className="kpi-val">{generatedCA.toLocaleString("fr-FR")} €</div><div className="kpi-sub">bail signé + payé</div></div>
                   <div className="kpi"><div className="kpi-ic" style={{background:"var(--purple-bg)",color:"var(--purple)"}}><Ic n="target" s={16}/></div><div className="kpi-lbl">Leads cette semaine</div><div className="kpi-val">{leadsThisWeek}</div><div className="kpi-sub">{newLeads} non traité{newLeads>1?"s":""}</div></div>
                 </div>
 
